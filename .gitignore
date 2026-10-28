@@ -1,0 +1,46 @@
+﻿# Dependencies, builds and caches
+node_modules/
+dist/
+dist-ssr/
+target/
+build/
+.vite/
+coverage/
+*.log
+logs/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.local
+application-local.properties
+application-local.yml
+application-local.yaml
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Uploaded documents and database exports
+uploads/
+*.dump
+*.sql.gz
+*.backup
+
+# Archives, IDE metadata and agent-local state
+*.zip
+.idea/
+.vscode/
+.junie/
+.codex/
+.agents/
+.git-backups/
+.publish-prep/
+.DS_Store
+Thumbs.db
+*.iml
+*.iws
+*.ipr

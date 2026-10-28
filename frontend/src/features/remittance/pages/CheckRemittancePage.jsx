@@ -1,0 +1,215 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Search, DollarSign } from "lucide-react";
+import Header from "../../../components/layout/Header";
+import { verifyRemittance } from "../../../services/remittanceService";
+import { validateRequired, validateAmount } from "../../../utils/formatters";
+import { LOCAL_PROVIDERS, INTERNATIONAL_PROVIDERS } from "../../../data/providers";
+import { EXCHANGE_PROVIDERS } from "../../../data/providers";
+
+export default function CheckRemittancePage() {
+  const navigate = useNavigate();
+  const [sourceType, setSourceType] = useState(""); // 'local' | 'international'
+  const [providerId, setProviderId] = useState("");
+  const [referenceNumber, setReferenceNumber] = useState("");
+  const [approxAmount, setApproxAmount] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const providers = sourceType === "local" ? LOCAL_PROVIDERS : INTERNATIONAL_PROVIDERS;
+  const selectedProvider = EXCHANGE_PROVIDERS.find((p) => p.id === providerId);
+
+  function validate() {
+    const errs = {};
+    if (!sourceType) errs.sourceType = "اختر نوع المصدر";
+    if (!providerId) errs.providerId = "اختر الجهة المُرسِلة";
+    errs.referenceNumber = validateRequired(referenceNumber, "رقم الحوالة");
+    errs.approxAmount = validateAmount(approxAmount);
+    setErrors(errs);
+    return !Object.values(errs).some(Boolean);
+  }
+
+  function handleCheck() {
+    if (!validate()) return;
+    setLoading(true);
+    setTimeout(() => {
+      const result = verifyRemittance(referenceNumber, providerId);
+      setLoading(false);
+      navigate("/remittance-result", {
+        state: {
+          result,
+          query: { referenceNumber, providerId, approxAmount: parseFloat(approxAmount) },
+        },
+      });
+    }, 1200);
+  }
+
+  return (
+    <div className="bg-animated" style={{ minHeight: "100vh" }}>
+      <Header title="فحص الحوالة" showBack backTo="/home" />
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px" }}>
+        <div className="animate-fade-in-up" style={{ marginBottom: 24 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>استلام حوالة</h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
+            أدخل بيانات الحوالة للتحقق منها
+          </p>
+        </div>
+
+        <div className="glass-card animate-fade-in-up" style={{ padding: 24, animationDelay: "0.05s" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {/* Source type */}
+            <div>
+              <label className="form-label">نوع المصدر</label>
+              <div style={{ display: "flex", gap: 10 }}>
+                {[
+                  { value: "local", label: "🏦 Local Exchange" },
+                  { value: "international", label: "🌐 International Network" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    id={`source-type-${opt.value}`}
+                    className={`selectable-card ${sourceType === opt.value ? "selected" : ""}`}
+                    style={{
+                      flex: 1,
+                      textAlign: "center",
+                      padding: "14px 10px",
+                      fontSize: 13,
+                      fontFamily: "Tajawal, sans-serif",
+                      cursor: "pointer",
+                      fontWeight: sourceType === opt.value ? 700 : 500,
+                    }}
+                    onClick={() => {
+                      setSourceType(opt.value);
+                      setProviderId("");
+                      setErrors((e) => ({ ...e, sourceType: null, providerId: null }));
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {errors.sourceType && (
+                <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.sourceType}</p>
+              )}
+            </div>
+
+            {/* Provider selection */}
+            {sourceType && (
+              <div>
+                <label className="form-label">
+                  {sourceType === "local" ? "Exchange Company" : "Transfer Network"}
+                </label>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {providers.map((p) => (
+                    <button
+                      key={p.id}
+                      id={`provider-${p.id}`}
+                      className={`selectable-card ${providerId === p.id ? "selected" : ""}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        fontFamily: "Tajawal, sans-serif",
+                        cursor: "pointer",
+                        textAlign: "right",
+                      }}
+                      onClick={() => {
+                        setProviderId(p.id);
+                        setErrors((e) => ({ ...e, providerId: null }));
+                      }}
+                    >
+                      <span style={{ fontSize: 24 }}>{p.logo}</span>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{p.nameEn}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.nameAr || ""}</div>
+                      </div>
+                      {providerId === p.id && (
+                        <span style={{ marginRight: "auto", color: "var(--primary-light)", fontSize: 18 }}>✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {errors.providerId && (
+                  <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.providerId}</p>
+                )}
+              </div>
+            )}
+
+            {/* Reference number */}
+            {providerId && (
+              <>
+                <div>
+                  <label className="form-label">
+                    {selectedProvider?.referenceLabel || "رقم الحوالة"}
+                  </label>
+                  <input
+                    id="input-reference-number"
+                    className="input-field"
+                    placeholder={selectedProvider?.referencePlaceholder || "أدخل رقم الحوالة"}
+                    value={referenceNumber}
+                    onChange={(e) => {
+                      setReferenceNumber(e.target.value);
+                      setErrors((er) => ({ ...er, referenceNumber: null }));
+                    }}
+                    dir="ltr"
+                  />
+                  {errors.referenceNumber && (
+                    <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.referenceNumber}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <DollarSign size={14} style={{ color: "var(--primary-light)" }} />
+                    المبلغ التقريبي (JOD)
+                  </label>
+                  <input
+                    id="input-approx-amount"
+                    className="input-field"
+                    placeholder="مثال: 200"
+                    value={approxAmount}
+                    onChange={(e) => {
+                      setApproxAmount(e.target.value.replace(/[^0-9.]/g, ""));
+                      setErrors((er) => ({ ...er, approxAmount: null }));
+                    }}
+                    inputMode="decimal"
+                    dir="ltr"
+                  />
+                  {errors.approxAmount && (
+                    <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.approxAmount}</p>
+                  )}
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                    المبلغ التقريبي للمقارنة والتحقق من صحة الحوالة
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <button
+          id="btn-check-remittance"
+          className="btn-primary animate-fade-in-up"
+          onClick={handleCheck}
+          disabled={loading}
+          style={{ marginTop: 16, animationDelay: "0.1s" }}
+        >
+          {loading ? (
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <span
+                className="animate-spin"
+                style={{ width: 18, height: 18, border: "2px solid white", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block" }}
+              />
+              جارٍ التحقق...
+            </span>
+          ) : (
+            <>
+              <Search size={16} style={{ display: "inline", marginLeft: 6 }} />
+              التحقق من الحوالة
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}

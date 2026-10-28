@@ -1,4 +1,4 @@
-# Hawalati MVP
+﻿# Hawalati MVP
 
 A demo remittance application with a React/Vite frontend and a Spring Boot/PostgreSQL backend. It demonstrates authentication with OTP and JWT, profile and document management, demo KYC, and seeded remittance workflows. It does not perform real payouts, send real SMS, or provide production identity verification.
 
@@ -64,5 +64,4 @@ The backend application-context test requires local PostgreSQL, DB_PASSWORD and 
 Sprint 5 API client, JWT session, authentication and OTP are connected to the backend. Authenticated document upload and remaining remittance/history integration are still in progress. Some frontend screens continue to use local demo services. See the Sprint 5 plan for the exact checkpoint.
 
 The public repository contains source code and fictional demo fixtures. Runtime secrets, uploaded documents, dependencies, builds, IDE settings, database files and local archives are excluded.
-
 
