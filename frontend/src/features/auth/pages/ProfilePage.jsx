@@ -1,18 +1,19 @@
-import { useState } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Edit2, Save, X, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { Edit2, Save, X, CheckCircle } from "lucide-react";
 import Header from "../../../components/layout/Header";
 import BottomNav from "../../../components/layout/BottomNav";
 import { useAuth } from "../../../context/AuthContext";
-import { updateUserProfile } from "../../../services/authService";
+import { updateProfile } from "../../../services/userService";
 import {
   validatePhone,
   validateUsername,
-  validatePassword,
   validateNameEn,
   validateRequired,
 } from "../../../utils/formatters";
 import { JORDANIAN_CITIES } from "../../../data/providers";
+
+const formFromUser = (user) => Object.fromEntries(["fullName", "fullNameEn", "phone", "placeOfBirth", "address", "username", "dateOfBirth"].map((key) => [key, user?.[key] || ""]));
 
 const DOC_LABELS = {
   national_id: "🪪 الهوية الوطنية",
@@ -44,25 +45,41 @@ function InfoRow({ label, value, locked }) {
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { currentUser, refreshUser } = useAuth();
+  const { currentUser: authenticatedUser, refreshUser } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const currentUser = profile || authenticatedUser;
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const inFlight = useRef(false);
+  const refreshProfile = useRef(refreshUser);
+  useEffect(() => { refreshProfile.current = refreshUser; }, [refreshUser]);
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [showPass, setShowPass] = useState(false);
 
-  const [form, setForm] = useState({
-    fullName:    currentUser?.fullName    || "",
-    fullNameEn:  currentUser?.fullNameEn  || "",
-    phone:       currentUser?.phone       || "",
-    placeOfBirth:currentUser?.placeOfBirth|| "",
-    address:     currentUser?.address     || "",
-    username:    currentUser?.username    || "",
-    password:    "",
-    dateOfBirth: currentUser?.dateOfBirth || "",
-  });
+
+  const [form, setForm] = useState(() => formFromUser(authenticatedUser));
   const [errors, setErrors] = useState({});
 
+  useEffect(() => {
+    let active = true;
+    Promise.resolve().then(async () => {
+      if (!active) return;
+      setProfileLoading(true);
+      setProfileError("");
+      try {
+        const user = await refreshProfile.current();
+        if (active) { setProfile(user); setForm(formFromUser(user)); }
+      } catch (error) {
+        if (active) setProfileError(error.message);
+      } finally {
+        if (active) setProfileLoading(false);
+      }
+    });
+    return () => { active = false; };
+  }, [authenticatedUser?.id, reloadKey]);
   function update(key, val) {
     setForm((f) => ({ ...f, [key]: val }));
     setErrors((e) => ({ ...e, [key]: null }));
@@ -76,34 +93,40 @@ export default function ProfilePage() {
     errs.placeOfBirth = validateRequired(form.placeOfBirth, "مكان الميلاد");
     errs.address     = validateRequired(form.address, "مكان السكن");
     errs.username    = validateUsername(form.username);
-    if (form.password) errs.password = validatePassword(form.password);
+
     setErrors(errs);
     return !Object.values(errs).some(Boolean);
   }
 
   async function handleSave() {
-    if (saving || !validate()) return;
+    if (inFlight.current || !validate()) return;
+    inFlight.current = true;
     setSaving(true);
     try {
-      const updates = { ...form };
-      if (!updates.password) delete updates.password; // don't overwrite if empty
-      await updateUserProfile(currentUser.id, updates);
-      await refreshUser();
+      await updateProfile(form);
+      const fresh = await refreshUser();
+      setProfile(fresh);
+      setForm(formFromUser(fresh));
       setSaved(true);
       setEditing(false);
       setTimeout(() => setSaved(false), 3000);
     } catch (error) {
       setErrors({ ...error.fieldErrors, _global: error.message });
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   }
 
-  if (!currentUser) {
-    navigate("/", { replace: true });
-    return null;
-  }
-
+  if (profileLoading || profileError) return <div className="bg-animated" style={{ minHeight: "100vh", paddingBottom: 80 }}>
+    <Header title="الملف الشخصي" />
+    <div className="glass-card" style={{ maxWidth: 440, margin: "24px auto", padding: 24 }}>
+      {profileLoading ? <p role="status">جارٍ تحميل الملف الشخصي…</p> : <div role="alert"><p style={{ color: "var(--danger)" }}>{profileError}</p>
+        <button className="btn-primary" style={{ marginTop: 14 }} onClick={() => setReloadKey((value) => value + 1)}>إعادة المحاولة</button></div>}
+    </div><BottomNav />
+  </div>;
+  if (!currentUser) return null;
+  const kycVerified = ["VERIFIED", "DEMO_VERIFIED"].includes(currentUser.kycStatus);
   return (
     <div className="bg-animated" style={{ minHeight: "100vh", paddingBottom: 80 }}>
       <Header title="الملف الشخصي" />
@@ -134,7 +157,7 @@ export default function ProfilePage() {
             <p style={{ fontSize: 17, fontWeight: 800, marginBottom: 2 }}>{currentUser.fullName}</p>
             <p style={{ fontSize: 12, color: "var(--text-muted)", direction: "ltr" }}>@{currentUser.username || "—"}</p>
             <div style={{ marginTop: 6, display: "flex", gap: 6 }}>
-              <span className="badge badge-success" style={{ fontSize: 10 }}>✓ KYC موثّق</span>
+              <span className={`badge ${kycVerified ? "badge-success" : "badge-warning"}`} style={{ fontSize: 10 }}>{kycVerified ? "✓ KYC موثّق" : currentUser.kycStatus}</span>
               <span className="badge badge-primary" style={{ fontSize: 10 }}>حوالتي Demo</span>
             </div>
           </div>
@@ -162,7 +185,7 @@ export default function ProfilePage() {
           {!editing ? (
             <button
               id="btn-edit-profile"
-              onClick={() => setEditing(true)}
+              onClick={() => { setForm(formFromUser(currentUser)); setErrors({}); setSaved(false); setEditing(true); }}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 background: "rgba(108,99,255,0.12)", border: "1px solid rgba(108,99,255,0.25)",
@@ -177,7 +200,7 @@ export default function ProfilePage() {
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 id="btn-cancel-edit"
-                onClick={() => { setEditing(false); setErrors({}); }}
+                disabled={saving} onClick={() => { setForm(formFromUser(currentUser)); setEditing(false); setErrors({}); }}
                 style={{
                   display: "flex", alignItems: "center", gap: 5,
                   background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
@@ -253,22 +276,6 @@ export default function ProfilePage() {
                 {errors.address && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{errors.address}</p>}
               </div>
 
-              {/* Password change */}
-              <div>
-                <label className="form-label">كلمة المرور الجديدة (اختياري)</label>
-                <div style={{ position: "relative" }}>
-                  <input className="input-field" type={showPass ? "text" : "password"}
-                    placeholder="اتركه فارغاً للإبقاء على الحالي"
-                    value={form.password} onChange={(e) => update("password", e.target.value)}
-                    dir="ltr" style={{ paddingLeft: 44 }} />
-                  <button type="button" onClick={() => setShowPass(!showPass)}
-                    style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
-                    {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-                {errors.password && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{errors.password}</p>}
-              </div>
-
               {/* Demo verification notice */}
               <div
                 style={{
@@ -278,16 +285,23 @@ export default function ProfilePage() {
                   color: "var(--accent)", marginTop: 4,
                 }}
               >
-                ✉️ بعد الحفظ، في النظام الحقيقي سيُرسَل رمز تحقق للتأكيد.
+                تُحفظ التغييرات في حسابك، وقد تعيد تغييرات بيانات الهوية حالة KYC إلى الانتظار.
                 <br />
-                <span style={{ color: "var(--text-muted)" }}>(في النسخة التجريبية يُحفظ مباشرة)</span>
+                <span style={{ color: "var(--text-muted)" }}>تغيير كلمة المرور عملية منفصلة عن تعديل الملف الشخصي.</span>
               </div>
             </div>
           )}
         </div>
       </div>
 
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px 20px" }}>
+        <div className="glass-card" style={{ padding: 18 }}>
+          <p style={{ fontSize: 14, marginBottom: 10 }}>وثيقة الهوية: {currentUser.documentUploaded ? "مرفوعة" : "لم تُرفع بعد"}</p>
+          <button id="btn-profile-document" className="btn-secondary" onClick={() => navigate("/kyc")}>عرض الوثيقة أو استبدالها وإكمال التحقق</button>
+        </div>
+      </div>
       <BottomNav />
     </div>
   );
 }
+

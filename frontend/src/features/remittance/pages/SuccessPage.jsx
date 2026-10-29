@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+﻿import { useState } from "react";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { CheckCircle, Home, History, Copy } from "lucide-react";
 import Header from "../../../components/layout/Header";
 import { formatAmount, formatDate } from "../../../utils/formatters";
@@ -9,20 +9,19 @@ export default function SuccessPage() {
   const location = useLocation();
   const { transaction } = location.state || {};
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
 
-  useEffect(() => {
-    if (!transaction) navigate("/home", { replace: true });
-  }, []);
+  if (!transaction?.id) return <Navigate to="/history" replace />;
 
-  if (!transaction) return null;
-
-  function copyTxnId() {
-    navigator.clipboard.writeText(transaction.id).then(() => {
+  async function copyTxnId() {
+    try {
+      await navigator.clipboard.writeText(transaction.id);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+      setCopyError("");
+    } catch {
+      setCopyError("تعذر النسخ تلقائيًا. يمكنك تحديد رقم العملية ونسخه.");
+    }
   }
-
   return (
     <div className="bg-animated" style={{ minHeight: "100vh" }}>
       <Header title="تم بنجاح" />
@@ -76,7 +75,7 @@ export default function SuccessPage() {
           }}
         >
           <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>رقم العملية التجريبي</p>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
             <span
               style={{
                 fontSize: 13,
@@ -85,6 +84,8 @@ export default function SuccessPage() {
                 color: "var(--accent)",
                 direction: "ltr",
                 letterSpacing: 0.5,
+                overflowWrap: "anywhere",
+                minWidth: 0,
               }}
             >
               {transaction.id}
@@ -122,6 +123,9 @@ export default function SuccessPage() {
           {[
             ["رقم الحوالة", transaction.referenceNumber],
             ["المُرسِل", transaction.senderName],
+            ["المبلغ الأصلي", formatAmount(transaction.amount, transaction.currency)],
+            ["المبلغ بالدينار", formatAmount(transaction.amountJOD)],
+            ["الحالة", transaction.status],
             ["المبلغ الصافي", formatAmount(transaction.netAmount)],
             [
               "وجهة الاستلام",
@@ -145,6 +149,8 @@ export default function SuccessPage() {
             </div>
           ))}
 
+          <p style={{ fontSize: 13, marginTop: 10 }} dir="ltr">{transaction.destination?.iban || transaction.destination?.walletPhone}</p>
+          {copyError && <p role="alert" style={{ color: "var(--danger)", marginTop: 10 }}>{copyError}</p>}
           {/* Net amount highlight */}
           <div
             style={{
@@ -231,3 +237,4 @@ export default function SuccessPage() {
     </div>
   );
 }
+

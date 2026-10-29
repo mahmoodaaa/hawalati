@@ -1,4 +1,4 @@
-﻿import { createContext, useContext, useState, useEffect } from 'react';
+﻿import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { logout as logoutService } from '../services/authService';
 import { getSession, setSession, subscribeSession } from '../services/apiClient';
 import { getProfile } from '../services/userService';
@@ -9,6 +9,12 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pendingOtp, setPendingOtp] = useState(null);
+  // Personal data, File and the registration-only JWT never leave React memory.
+  const [registrationDraft, setRegistrationDraft] = useState(null);
+  const clearRegistration = useCallback(() => {
+    setRegistrationDraft(null);
+    setPendingOtp((pending) => pending?.flow === 'phone-registration' ? null : pending);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -32,14 +38,15 @@ export function AuthProvider({ children }) {
     return () => { active = false; unsubscribe(); };
   }, []);
 
-  async function login(result) {
+  async function login(result, { useResponseUser = false } = {}) {
     if (!result?.accessToken || !result?.refreshToken) throw new Error('لم يُرجع الخادم جلسة صالحة.');
     setSession(result);
     try {
-      const profile = await getProfile();
+      const profile = useResponseUser && result.user?.id ? result.user : await getProfile();
       if (!getSession()) throw new Error('انتهت الجلسة.');
       setCurrentUser(profile);
       setPendingOtp(null);
+      setRegistrationDraft(null);
       return profile;
     } catch (error) {
       setSession(null);
@@ -48,6 +55,7 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
+    clearRegistration();
     setPendingOtp(null);
     setCurrentUser(null);
     await logoutService();
@@ -61,7 +69,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{ currentUser, isAuthenticated: !!currentUser, loading,
-      login, logout, refreshUser, pendingOtp, setPendingOtp }}>
+      login, logout, refreshUser, pendingOtp, setPendingOtp, registrationDraft, setRegistrationDraft, clearRegistration }}>
       {children}
     </AuthContext.Provider>
   );
@@ -72,3 +80,4 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
   return ctx;
 }
+

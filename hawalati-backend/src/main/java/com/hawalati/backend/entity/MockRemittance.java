@@ -8,7 +8,9 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Table(name = "mock_remittances", uniqueConstraints = @UniqueConstraint(columnNames = "reference_number"))
+@Table(name = "mock_remittances",
+       uniqueConstraints = @UniqueConstraint(columnNames = "reference_number")
+)
 @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 public class MockRemittance {
     @Id @GeneratedValue(strategy = GenerationType.UUID)

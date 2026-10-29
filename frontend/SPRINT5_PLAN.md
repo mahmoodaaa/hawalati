@@ -1,6 +1,6 @@
 ﻿# Hawalati Money Exchange — Sprint 5 Plan
 
-**Status:** Phases 1–2 implemented; backend auth smoke checks passed; browser acceptance pending  
+**Status:** Frontend API integration implemented through remittances/history/profile; 37 automated checks pass; final browser acceptance pending  
 **Goal:** Integrate the existing React/Vite frontend with the tested Spring Boot + PostgreSQL backend, preserving the current presentation UI.  
 **Scope:** MVP demo only; no live remittance providers, real payout, SMS delivery, or biometric verification.
 
@@ -196,3 +196,111 @@ Make changes incrementally, testing each phase in the browser and using Spring B
 - Manual smoke created fictional account `sprint5.1793224149488`; its credentials were ephemeral. No remittances were received during testing.
 - Lint completes with warnings in existing areas; browser acceptance is still pending.
 - Next: Phase 3 file picker, authenticated document upload/metadata and complete KYC browser flow, then phases 4–6 remittance/history/profile finishing work. Existing local remittance/reset behavior remains until those phases.
+
+
+## 10. Phase 3 implementation — 2026-10-29
+
+**Status: Implemented in the frontend; manual browser acceptance is NOT yet passed.**
+
+User-reported browser checkpoint before this change: Register → REGISTER OTP → KYC page succeeded, the account was enabled with PENDING KYC, and KYC without a document was correctly rejected by the backend. This does not establish document-upload acceptance.
+
+Implemented:
+
+- `userService.js`: authenticated `GET /api/user/document` and `PUT /api/user/document` using FormData keys `file` and `documentType`. Existing `apiRequest` handles JWT, refresh/retry and multipart boundaries; no manual multipart Content-Type.
+- `KycPage.jsx`: actual file picker for JPEG/PNG/PDF, nonempty file validation and a 5 MiB (5 × 1024 × 1024 bytes) maximum before upload. Defaults the document type from the authenticated profile, with supported replacement types national_id/passport/license.
+- On opening/reloading KYC, retrieve server document metadata (type, MIME, size, uploaded timestamp). A 404 is an ordinary missing-document state; other errors are visible with a retry action. An unuploaded file stays in memory and must be reselected after reload.
+- Upload → server KYC → refreshed authenticated profile → success showing the actual profile status (DEMO_VERIFIED in the demo backend) → existing Home route via Continue. No successful KYC state is fabricated locally.
+- Saved documents can be verified without reuploading. If KYC fails after a successful upload, retain the metadata and retry KYC. Refresh the profile on that failure path because replacing a document can reset KYC to PENDING.
+- Disable actions while metadata loads or a mutation is running; prevent duplicate submissions. Show distinct selected-file, uploading, saved-document, verifying, error and success states.
+- Face recognition is explicitly presentation-only and is never displayed as a completed real verification.
+- No backend edits or new dependencies. Unrelated local backend changes were left untouched.
+
+Automated validation:
+
+- `npm.cmd test`: 17 passing tests (8 existing API-client tests plus 9 document-service tests). New checks cover supported types, exact size boundary, invalid/empty/oversized files rejected before requests, authenticated multipart keys, metadata retrieval/missing/server errors, multipart replay after JWT refresh and backend upload/KYC rejection. HTTP responses in these tests are mocked; they do not establish real browser upload acceptance.
+- `npm.cmd run build`: passed.
+- `npm.cmd run lint`: completes with existing warnings outside the Phase 3 changes; no new warnings in the edited service or KYC page.
+
+Manual browser acceptance still required:
+
+- [ ] New authenticated user with no document: KYC shows an empty state without a fatal error; submission is disabled until a valid file is selected.
+- [ ] JPEG, PNG and PDF upload individually; actual metadata is returned and KYC reaches DEMO_VERIFIED, then Continue opens Home.
+- [ ] Unsupported, empty and over-5-MiB files are rejected before any upload request.
+- [ ] Reload after upload restores metadata; reload before upload requires file reselection.
+- [ ] Existing stored document allows retrying KYC without selecting/uploading a new file.
+- [ ] Replace a document, including a different documentType, and confirm the backend metadata/profile reflect the replacement.
+- [ ] Metadata/network/upload/KYC errors show visibly; failed upload does not submit KYC; successful upload followed by failed KYC can be retried.
+- [ ] Expired access token refreshes for document GET/PUT; no duplicate submissions on repeated clicks.
+- [ ] No face-recognition success claim appears; it remains labeled as demo-only.
+
+Next implementation phase: Phase 4 — backend remittance lookup including approxAmount in JOD and all result statuses. Remittance lookup/receive/history remain outside this Phase 3 change.
+
+## 11. Previous registration confirmation screen — 2026-10-29 (superseded by section 12)
+
+Frontend-only presentation change requested after Phase 3:
+
+- Existing registration fields and review remain unchanged. The backend still receives the chosen username/password before sending REGISTER OTP.
+- Successful REGISTER OTP now routes to authenticated `/credentials`, then a confirmation action opens `/home`. This is a confirmation page, not new credential creation: it displays the server username and a password mask, and requires acknowledgment. It never reads, retains, changes or resubmits a password.
+- Reloading `/credentials` works through the existing authenticated profile restoration. Unauthenticated access redirects to Login.
+- LOGIN OTP keeps its existing behavior: verified users follow their intended destination; unverified users go to KYC.
+- Home reflects actual KYC status. Unverified users can view Home but its main action opens KYC; lookup/receive route guards remain enforced. No automatic KYC is claimed or run without a stored document.
+- No Spring Boot changes, new endpoints, database entities or dependencies.
+- Verification: 17 existing frontend tests and production build pass; lint has existing warnings only. Browser acceptance for this new navigation flow remains pending.
+
+Manual checks:
+
+- [ ] Register → review → REGISTER OTP → credentials confirmation → Home.
+- [ ] Confirmation shows the real server username and cannot silently change credentials.
+- [ ] Reload confirmation page; logout blocks that protected route.
+- [ ] PENDING KYC shows pending status on Home and the main action opens KYC.
+- [ ] Verify/upload through existing KYC, return Home, and confirm receiving routes unlock only for VERIFIED/DEMO_VERIFIED.
+- [ ] LOGIN OTP still follows its existing routing behavior.
+
+
+## 12. Current phone-first registration — 2026-10-29
+
+**This supersedes the legacy registration sequence in Phases 2–3 and section 11.** The authenticated KYC page for existing accounts remains supported. No backend code or API contracts were modified in this frontend change.
+
+Current user journey: Personal → Contact → Select document → KYC preview/review → Phone OTP → Create credentials → Complete registration → Home.
+
+API mapping:
+
+| Action | API | Authentication/body |
+|---|---|---|
+| Send/resend registration OTP | POST /api/auth/phone-otp/send | Public JSON `{phone}` |
+| Verify registration OTP | POST /api/auth/phone-otp/verify | Public JSON `{phone,code}`; returns registrationToken and expiresIn |
+| Create account | POST /api/auth/registration/complete | Public multipart: `data` JSON Blob `{registrationToken,registration:{...all fields including username/password}}`, `file` selected File |
+| Existing-account login | Existing login/verify-otp/resend-otp | Existing username/password and LOGIN purpose contracts unchanged |
+
+Implementation details:
+
+- RegisterPage no longer collects credentials or calls the legacy register endpoint. It validates actual JPEG/PNG/PDF selection (nonempty, max 5 MiB) and displays the filename before the KYC preview/review.
+- KYC preview remains pending and never calls protected document/KYC endpoints or claims a successful identity check. Face recognition is explicitly presentation-only.
+- A small AuthContext draft holds information, File, wizard step, temporary registrationToken and expiry. It stays in React memory; passwords exist only in CreateCredentialsPage form state. No sensitive draft fields are put in browser storage or route state.
+- OTP distinguishes phone registration from existing LOGIN/legacy activation. Registration OTP does not log in; it opens `/create-credentials`. Existing LOGIN OTP retains its original session and KYC routing.
+- CreateCredentialsPage validates username/password/confirmation, submits the exact nested JSON part and File, then establishes the existing normal JWT session from the trusted completion response and goes directly Home. There is no duplicate authenticated upload/KYC call.
+- The old confirmation-only CredentialsPage is removed. `/credentials` redirects to `/create-credentials` for existing links.
+- Back preserves draft information and File; changing phone invalidates old verification. Abandoning registration, successful login/completion or logout clears temporary registration state.
+- Reload of OTP/credentials with lost memory offers a restart. Expired/rejected registration permits offer reverification without discarding the in-tab information/File. Public registration errors never trigger normal access-token refresh.
+- Double submissions are blocked, backend errors/field errors are shown, and final network errors include a Login recovery link in case the server already created the account.
+
+Verification completed: 26 frontend tests pass; production build passes; lint completes with existing warnings only. New regression tests cover the three public endpoints and multipart JSON/file contract, no session/storage at phone verification, invalid inputs, wrong/expired tokens, server field errors, and unchanged LOGIN requests. These use mocked HTTP and do not constitute browser acceptance.
+
+New-flow manual acceptance remains pending. Follow the checklist in frontend/README.md: full new registration, wrong OTP, field conflicts, upload result/profile, back/edit, refresh/abandon, token expiry/reverification and existing LOGIN/KYC/session regression.
+
+Changed/new files are listed in frontend/README.md. The next implementation phase after accepting this flow remains backend remittance lookup (Phase 4).
+
+
+## 13. Remaining remittance/history/profile integration — 2026-10-29
+
+**Implementation complete; final browser acceptance is pending.** This supersedes previous notes saying remittance screens still use local mocks. The complete technical checkpoint, demo seed constraints and acceptance checklist are in frontend/README.md and frontend/DEMO_GUIDE.md.
+
+- Backend lookup with approxAmount in JOD and AVAILABLE/NOT_FOUND/ALREADY_RECEIVED/PROVIDER_MISMATCH screens.
+- Backend receive with the lookup UUID, explicit agreement and Bank/Wallet payload, in-flight guard and duplicate/error handling.
+- Backend transaction response on Success; shared server History for full History and Home recent transactions, including loading/empty/error/retry.
+- Profile GET on opening, permitted-field PUT, actual KYC status and document replacement access. Existing authenticated document GET/PUT and KYC remain operational; replacement now refreshes profile immediately before KYC.
+- Top History/Profile/Home links plus existing bottom navigation. Browser-only Reset Demo removed; active screens no longer import mockRemittances/storageService.
+- Seed beneficiary 9912345678 and all seven source references/amounts inspected and documented. Bank/wallet IDs aligned with existing backend maps. No backend or seed changes.
+- Tests: 37 passed; production build passed; lint has four existing warnings only. HTTP responses in automated tests are mocked; no live payout or manual browser check is claimed.
+
+Outstanding work is the final manual acceptance checklist in frontend/README.md, not additional local mock wiring. Do not mark the original browser acceptance matrix complete until those checks are actually exercised.

@@ -1,8 +1,8 @@
-import { useNavigate } from "react-router-dom";
-import { LogOut, ArrowRight, Wallet } from "lucide-react";
+﻿import { useNavigate, NavLink } from "react-router-dom";
+import { LogOut, ArrowRight, Wallet, History, UserRound, Home } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
-export default function Header({ title, showBack = false, backTo = -1 }) {
+export default function Header({ title, showBack = false, backTo = -1, backState }) {
   const { logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -42,7 +42,7 @@ export default function Header({ title, showBack = false, backTo = -1 }) {
         <div style={{ width: 40 }}>
           {showBack && (
             <button
-              onClick={() => navigate(backTo)}
+              aria-label="رجوع" onClick={() => typeof backTo === "number" ? navigate(backTo) : navigate(backTo, { state: backState })}
               style={{
                 background: "rgba(255,255,255,0.06)",
                 border: "1px solid rgba(255,255,255,0.1)",
@@ -129,6 +129,16 @@ export default function Header({ title, showBack = false, backTo = -1 }) {
           )}
         </div>
       </div>
+      {isAuthenticated && <nav aria-label="التنقل الرئيسي" style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px 12px", display: "flex", gap: 8 }}>
+        {[{ path: "/home", label: "الرئيسية", Icon: Home }, { path: "/history", label: "سجل العمليات", Icon: History }, { path: "/profile", label: "الملف الشخصي", Icon: UserRound }].map(({ path, label, Icon }) => (
+          <NavLink key={path} to={path} style={({ isActive }) => ({ flex: 1, display: "flex", gap: 5, alignItems: "center", justifyContent: "center",
+            padding: "9px 4px", borderRadius: 10, fontSize: 12, textDecoration: "none", color: isActive ? "var(--primary-light)" : "var(--text-secondary)",
+            background: isActive ? "rgba(108,99,255,0.15)" : "rgba(255,255,255,0.03)" })}>
+            <Icon size={14} /><span>{label}</span>
+          </NavLink>
+        ))}
+      </nav>}
     </header>
   );
 }
+

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+﻿import { isRemittanceId } from "../../../services/remittanceService";
+import { useState } from "react";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { Building2, Smartphone } from "lucide-react";
 import Header from "../../../components/layout/Header";
 import { BANKS, WALLETS } from "../../../data/providers";
@@ -109,16 +110,14 @@ function WalletForm({ data, onChange, errors }) {
 export default function DestinationPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { remittance, query } = location.state || {};
+  const { remittance, query, destination: previousDestination } = location.state || {};
 
-  const [destType, setDestType] = useState(""); // 'bank' | 'wallet'
-  const [bankData, setBankData] = useState({});
-  const [walletData, setWalletData] = useState({});
+  const [destType, setDestType] = useState(previousDestination?.type || ""); // bank | wallet
+  const [bankData, setBankData] = useState(previousDestination?.type === "bank" ? previousDestination.details : {});
+  const [walletData, setWalletData] = useState(previousDestination?.type === "wallet" ? previousDestination.details : {});
   const [errors, setErrors] = useState({});
 
-  useEffect(() => {
-    if (!remittance) navigate("/check-remittance", { replace: true });
-  }, []);
+  if (!isRemittanceId(remittance?.id) || remittance?.status !== "AVAILABLE") return <Navigate to="/check-remittance" replace />;
 
   function validate() {
     const errs = {};
@@ -129,10 +128,10 @@ export default function DestinationPage() {
     }
     if (destType === "bank") {
       errs.bankId = validateRequired(bankData.bankId, "البنك");
-      errs.iban = validateIban(bankData.iban);
-      errs.accountName = validateRequired(bankData.accountName, "اسم صاحب الحساب");
+      errs.iban = validateIban(bankData.iban) || (!/^JO[0-9A-Z]{28}$/.test((bankData.iban || "").replace(/\s/g, "").toUpperCase()) ? "أدخل IBAN أردنيًا من 30 خانة" : null);
+      errs.accountName = validateRequired(bankData.accountName, "اسم صاحب الحساب") || (bankData.accountName?.trim().length > 120 ? "اسم صاحب الحساب يجب ألا يتجاوز 120 حرفًا" : null);
     } else {
-      errs.walletId = validateRequired(bankData.walletId || walletData.walletId, "المحفظة");
+      errs.walletId = validateRequired(walletData.walletId, "المحفظة");
       errs.walletPhone = validatePhone(walletData.walletPhone);
     }
     setErrors(errs);
@@ -143,14 +142,14 @@ export default function DestinationPage() {
     if (!validate()) return;
     const destination = {
       type: destType,
-      details: destType === "bank" ? bankData : walletData,
+      details: destType === "bank" ? { ...bankData, iban: bankData.iban.replace(/\s/g, "").toUpperCase(), accountName: bankData.accountName.trim() } : { ...walletData, walletPhone: walletData.walletPhone.replace(/[\s-]/g, "") },
     };
     navigate("/review", { state: { remittance, query, destination } });
   }
 
   return (
     <div className="bg-animated" style={{ minHeight: "100vh" }}>
-      <Header title="وجهة الاستلام" showBack backTo="/remittance-result" />
+      <Header title="وجهة الاستلام" showBack backTo="/remittance-result" backState={{ result: { status: "AVAILABLE", remittance }, query }} />
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px" }}>
         <div className="animate-fade-in-up" style={{ marginBottom: 24 }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>أين تريد استلام المبلغ؟</h2>
@@ -218,3 +217,4 @@ export default function DestinationPage() {
     </div>
   );
 }
+

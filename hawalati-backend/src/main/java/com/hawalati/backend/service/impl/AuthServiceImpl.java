@@ -31,6 +31,25 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.hawalati.backend.dto.request.SendPhoneOtpRequest;
+import com.hawalati.backend.dto.request.VerifyPhoneOtpRequest;
+import com.hawalati.backend.dto.request.CompleteRegistrationRequest;
+import com.hawalati.backend.dto.response.RegistrationTokenResponse;
+
+import com.hawalati.backend.entity.UserDocument;
+import com.hawalati.backend.enums.KycStatus;
+import com.hawalati.backend.repository.UserDocumentRepository;
+import com.hawalati.backend.service.DocumentStorageService;
+import com.hawalati.backend.service.DocumentStorageService.StoredFile;
+
+import io.jsonwebtoken.JwtException;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
+
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -45,31 +64,9 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProperties jwtProperties;
     private final OtpProperties otpProperties;
 
-    @Override
-    public OtpPendingResponse register(RegisterRequest request) {
-        if (userRepository.existsByNationalId(request.getNationalId().trim())) {
-            throw new ApiException(HttpStatus.CONFLICT, "الرقم الوطني مسجّل مسبقًا. يرجى تسجيل الدخول.");
-        }
-        String username = normalizeUsername(request.getUsername());
-        if (userRepository.existsByUsername(username)) {
-            throw new ApiException(HttpStatus.CONFLICT, "اسم المستخدم مأخوذ، اختر اسماً آخر.");
-        }
-        String phone = request.getPhone() == null ? "" : request.getPhone().replaceAll("[\\s-]", "").trim();
-        if (userRepository.existsByPhone(phone)) {
-            throw new ApiException(HttpStatus.CONFLICT, "رقم الهاتف مسجّل مسبقًا.");
-        }
-
-        User user = userMapper.toEntity(request);
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEnabled(false);
-        userRepository.save(user);
-        issueOtp(user, OtpPurpose.REGISTER);
-
-        return OtpPendingResponse.builder()
-                .message("تم إنشاء الحساب. أدخل رمز التحقق لإكمال التسجيل.")
-                .user(userMapper.toProfileResponse(user))
-                .build();
-    }
+    private final UserDocumentRepository userDocumentRepository;
+    private final DocumentStorageService documentStorageService;
+    private final Environment environment;
 
     @Override
     public OtpPendingResponse login(LoginRequest request) {
@@ -92,21 +89,17 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(noRollbackFor = ApiException.class)
     public AuthResponse verifyOtp(VerifyOtpRequest request) {
+        requireLoginPurpose(request.getPurpose());
         User user = userRepository.findByUsername(normalizeUsername(request.getUsername()))
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "لا يوجد رمز تحقق صالح"));
 
-        if (request.getPurpose() == OtpPurpose.LOGIN
-                && !user.isEnabled()) {
+        if (!user.isEnabled()) {
             throw new ApiException(
                     HttpStatus.FORBIDDEN, "الحساب غير مفعّل");}
 
-        if (request.getPurpose() == OtpPurpose.REGISTER
-                && user.isEnabled()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "الحساب مفعّل مسبقاً");
-        }
 
         OtpVerification otp = otpVerificationRepository
-                .findFirstByUserAndPurposeAndUsedFalseOrderByCreatedAtDesc(user, request.getPurpose())
+                .findFirstByUserAndPurposeAndUsedFalseOrderByCreatedAtDesc(user, OtpPurpose.LOGIN)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "لا يوجد رمز تحقق صالح"));
 
         if (otp.isExpired()) {
@@ -129,16 +122,13 @@ public class AuthServiceImpl implements AuthService {
 
         otp.setUsed(true);
 
-        if (request.getPurpose() == OtpPurpose.REGISTER) {
-            user.setEnabled(true);
-            userRepository.save(user);
-        }
 
         return issueSession(user);
     }
 
     @Override
     public OtpPendingResponse resendOtp(ResendOtpRequest request) {
+        requireLoginPurpose(request.getPurpose());
 
         User user = userRepository
                 .findByUsername(normalizeUsername(request.getUsername()))
@@ -150,23 +140,15 @@ public class AuthServiceImpl implements AuthService {
             throw invalidCredentials();
         }
 
-        if (request.getPurpose() == OtpPurpose.LOGIN
-                && !user.isEnabled()) {
+        if (!user.isEnabled()) {
             throw new ApiException(
                     HttpStatus.FORBIDDEN,
                     "يجب تأكيد التسجيل أولاً"
             );
         }
 
-        if (request.getPurpose() == OtpPurpose.REGISTER
-                && user.isEnabled()) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "الحساب مفعّل بالفعل"
-            );
-        }
 
-        issueOtp(user, request.getPurpose());
+        issueOtp(user, OtpPurpose.LOGIN);
 
         return OtpPendingResponse.builder()
                 .message("تم إنشاء رمز تحقق جديد")
@@ -221,6 +203,157 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+
+    @Override
+    public MessageResponse sendPhoneOtp(SendPhoneOtpRequest request) {
+        requireDemoRegistration();
+
+        String phone = normalizePhone(request.getPhone());
+
+        if (userRepository.existsByPhone(phone)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "رقم الهاتف مسجّل مسبقًا"
+            );
+        }
+
+        // Demo only: no real SMS is sent.
+        return MessageResponse.builder()
+                .message("تم تجهيز رمز التحقق التجريبي")
+                .build();
+    }
+
+    @Override
+    public RegistrationTokenResponse verifyPhoneOtp(
+            VerifyPhoneOtpRequest request) {
+
+        requireDemoRegistration();
+
+        String phone = normalizePhone(request.getPhone());
+
+        if (userRepository.existsByPhone(phone)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "رقم الهاتف مسجّل مسبقًا"
+            );
+        }
+
+        if (!otpProperties.demoCode().equals(request.getCode())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "رمز التحقق غير صحيح"
+            );
+        }
+
+        String token = jwtProvider.generateRegistrationToken(phone);
+
+        return RegistrationTokenResponse.builder()
+                .registrationToken(token)
+                .tokenType("Registration")
+                .expiresIn(900)
+                .build();
+    }
+
+
+
+    @Override
+    public AuthResponse completeRegistration(CompleteRegistrationRequest request, MultipartFile file) {
+
+        requireDemoRegistration();
+
+        RegisterRequest registration = request.getRegistration();
+        String phone = normalizePhone(registration.getPhone());
+
+        // 1. Validate the temporary registration token
+        String verifiedPhone;
+        try {
+            verifiedPhone = jwtProvider.validateRegistrationToken(
+                    request.getRegistrationToken()
+            );
+        } catch (JwtException | IllegalArgumentException ex) {
+            throw new ApiException(
+                    HttpStatus.UNAUTHORIZED,
+                    "تصريح التسجيل غير صالح أو منتهي الصلاحية"
+            );
+        }
+
+        // The verified phone must match the submitted phone
+        if (!phone.equals(verifiedPhone)) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "رقم الهاتف لا يطابق الرقم الذي تم التحقق منه"
+            );
+        }
+
+        // 2. Check uniqueness
+        String username = normalizeUsername(registration.getUsername());
+
+        if (userRepository.existsByNationalId(
+                registration.getNationalId().trim())) {
+            throw new ApiException(HttpStatus.CONFLICT, "الرقم الوطني مسجّل مسبقًا");
+        }
+
+        if (userRepository.existsByPhone(phone)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT, "رقم الهاتف مسجّل مسبقًا");
+        }
+
+        if (userRepository.existsByUsername(username)) {
+            throw new ApiException(HttpStatus.CONFLICT, "اسم المستخدم مأخوذ");
+        }
+
+        // 3. Create the actual User
+        User user = userMapper.toEntity(registration);
+        user.setPhone(phone);
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(registration.getPassword()));
+        user.setEnabled(true);
+        user.setKycStatus(KycStatus.PENDING);
+
+        userRepository.saveAndFlush(user);
+
+        // 4. Store the document file
+        StoredFile stored = documentStorageService.store(file);
+
+        // Remove the file if the DB transaction fails
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status != STATUS_COMMITTED) {
+                            documentStorageService.delete(
+                                    stored.storedFileName()
+                            );
+                        }
+                    }
+                }
+        );
+
+        UserDocument document = UserDocument.builder()
+                .user(user)
+                .documentType(registration.getDocumentType())
+                .storedFileName(stored.storedFileName())
+                .contentType(stored.contentType())
+                .fileSize(stored.fileSize())
+                .uploadedAt(LocalDateTime.now())
+                .build();
+
+        userDocumentRepository.saveAndFlush(document);
+
+        // 5. Demo KYC only (not real identity verification)
+        user.setKycStatus(KycStatus.DEMO_VERIFIED);
+        userRepository.save(user);
+
+        // 6. Issue the normal access and refresh tokens
+        AuthResponse response = issueSession(user);
+        response.getUser().setDocumentUploaded(true);
+
+        return response;
+    }
+
+
+
+
     private AuthResponse issueSession(User user) {
         String accessToken = jwtProvider.generateAccessToken(user);
         String refreshToken = jwtProvider.generateRefreshToken(user);
@@ -238,6 +371,12 @@ public class AuthServiceImpl implements AuthService {
                 .tokenType("Bearer")
                 .user(userMapper.toProfileResponse(user))
                 .build();
+    }
+
+    private void requireLoginPurpose(OtpPurpose purpose) {
+        if (purpose != OtpPurpose.LOGIN) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only LOGIN OTP is supported by this endpoint.");
+        }
     }
 
     private void issueOtp(User user, OtpPurpose purpose) {
@@ -265,4 +404,27 @@ public class AuthServiceImpl implements AuthService {
     private ApiException invalidCredentials() {
         return new ApiException(HttpStatus.UNAUTHORIZED, "اسم المستخدم أو كلمة المرور غير صحيحة.");
     }
+
+
+
+    private String normalizePhone(String phone) {
+        return phone == null
+                ? ""
+                : phone.replaceAll("[\\s-]", "").trim();
+    }
+
+    private void requireDemoRegistration() {
+        if (!otpProperties.demoEnabled()
+                || !environment.acceptsProfiles(Profiles.of("demo"))) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "التسجيل التجريبي متاح فقط في وضع Demo"
+            );
+        }
+    }
+
+
+
+
+
 }

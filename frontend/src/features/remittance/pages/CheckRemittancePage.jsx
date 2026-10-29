@@ -1,8 +1,8 @@
-import { useState } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, DollarSign } from "lucide-react";
 import Header from "../../../components/layout/Header";
-import { verifyRemittance } from "../../../services/remittanceService";
+import { lookupRemittance } from "../../../services/remittanceService";
 import { validateRequired, validateAmount } from "../../../utils/formatters";
 import { LOCAL_PROVIDERS, INTERNATIONAL_PROVIDERS } from "../../../data/providers";
 import { EXCHANGE_PROVIDERS } from "../../../data/providers";
@@ -15,6 +15,9 @@ export default function CheckRemittancePage() {
   const [approxAmount, setApproxAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const inFlight = useRef(false);
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
 
   const providers = sourceType === "local" ? LOCAL_PROVIDERS : INTERNATIONAL_PROVIDERS;
   const selectedProvider = EXCHANGE_PROVIDERS.find((p) => p.id === providerId);
@@ -24,26 +27,27 @@ export default function CheckRemittancePage() {
     if (!sourceType) errs.sourceType = "اختر نوع المصدر";
     if (!providerId) errs.providerId = "اختر الجهة المُرسِلة";
     errs.referenceNumber = validateRequired(referenceNumber, "رقم الحوالة");
-    errs.approxAmount = validateAmount(approxAmount);
+    errs.approxAmount = validateAmount(approxAmount) || (!Number.isFinite(Number(approxAmount)) || Number(approxAmount) < 0.01 ? "أدخل مبلغًا صحيحًا بالدينار الأردني" : null);
     setErrors(errs);
     return !Object.values(errs).some(Boolean);
   }
 
-  function handleCheck() {
-    if (!validate()) return;
+  async function handleCheck() {
+    if (inFlight.current || !validate()) return;
+    inFlight.current = true;
     setLoading(true);
-    setTimeout(() => {
-      const result = verifyRemittance(referenceNumber, providerId);
-      setLoading(false);
-      navigate("/remittance-result", {
-        state: {
-          result,
-          query: { referenceNumber, providerId, approxAmount: parseFloat(approxAmount) },
-        },
-      });
-    }, 1200);
+    try {
+      const query = { referenceNumber: referenceNumber.trim(), providerId, approxAmount: Number(approxAmount) };
+      const result = await lookupRemittance(query);
+      if (!active.current) return;
+      navigate("/remittance-result", { state: { result, query } });
+    } catch (error) {
+      if (active.current) setErrors({ ...error.fieldErrors, _global: error.message });
+    } finally {
+      inFlight.current = false;
+      if (active.current) setLoading(false);
+    }
   }
-
   return (
     <div className="bg-animated" style={{ minHeight: "100vh" }}>
       <Header title="فحص الحوالة" showBack backTo="/home" />
@@ -179,7 +183,7 @@ export default function CheckRemittancePage() {
                     <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.approxAmount}</p>
                   )}
                   <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                    المبلغ التقريبي للمقارنة والتحقق من صحة الحوالة
+                    أدخل القيمة بالدينار الأردني JOD مهما كانت عملة الحوالة الأصلية
                   </p>
                 </div>
               </>
@@ -187,6 +191,7 @@ export default function CheckRemittancePage() {
           </div>
         </div>
 
+        {errors._global && <p role="alert" style={{ color: "var(--danger)", marginTop: 14 }}>{errors._global}</p>}
         <button
           id="btn-check-remittance"
           className="btn-primary animate-fade-in-up"
@@ -213,3 +218,4 @@ export default function CheckRemittancePage() {
     </div>
   );
 }
+

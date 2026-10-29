@@ -1,133 +1,90 @@
-﻿import { useState } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import Header from "../../../components/layout/Header";
-import {
-  validateRequired,
-  validateNationalId,
-  validatePhone,
-  validateUsername,
-  validatePassword,
-  validateNameEn,
-} from "../../../utils/formatters";
+import { validateRequired, validateNationalId, validatePhone, validateNameEn } from "../../../utils/formatters";
 import { JORDANIAN_CITIES } from "../../../data/providers";
-import { registerUser } from "../../../services/authService";
+import { sendPhoneOtp } from "../../../services/authService";
+import { validateDocument } from "../../../services/userService";
 import { useAuth } from "../../../context/AuthContext";
+import RegistrationSteps from "../components/RegistrationSteps";
 
 const DOC_TYPES = [
   { id: "national_id", label: "الهوية الوطنية", icon: "🪪" },
-  { id: "passport",    label: "جواز السفر",      icon: "📕" },
-  { id: "license",     label: "رخصة القيادة",    icon: "🚗" },
+  { id: "passport", label: "جواز السفر", icon: "📕" },
+  { id: "license", label: "رخصة القيادة", icon: "🚗" },
 ];
-
-// ── Step indicator ────────────────────────────────────
-function StepBar({ current, total }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 28 }}>
-      {Array.from({ length: total }, (_, i) => {
-        const num = i + 1;
-        const state = num === current ? "active" : num < current ? "completed" : "pending";
-        return (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div className={`step-dot ${state}`}>
-              {state === "completed" ? "✓" : num}
-            </div>
-            {i < total - 1 && (
-              <div style={{ width: 28, height: 2, background: num < current ? "var(--accent)" : "var(--border)", borderRadius: 2 }} />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Shared error display ──────────────────────────────
+const EMPTY_FORM = { fullName: "", fullNameEn: "", nationalId: "", dateOfBirth: "", placeOfBirth: "", address: "", phone: "", documentType: "" };
 function FieldErr({ msg }) {
-  if (!msg) return null;
-  return <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{msg}</p>;
+  return msg ? <p role="alert" style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{msg}</p> : null;
 }
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { setPendingOtp } = useAuth();
-  const [step, setStep] = useState(1);
-  const TOTAL = 5;
-
-  const [form, setForm] = useState({
-    // Step 1 — personal
-    fullName: "", fullNameEn: "", nationalId: "", dateOfBirth: "", placeOfBirth: "", address: "",
-    // Step 2 — contact
-    phone: "",
-    // Step 3 — document
-    documentType: "", documentUploaded: false,
-    // Step 4 — credentials
-    username: "", password: "", confirmPassword: "",
-  });
-  const [showPass, setShowPass] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const { registrationDraft, setRegistrationDraft, setPendingOtp } = useAuth();
+  const { form = EMPTY_FORM, documentFile = null, step = 1 } = registrationDraft || {};
+  const TOTAL = 4;
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const inFlight = useRef(false);
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
 
-  function update(key, val) {
-    setForm((f) => ({ ...f, [key]: val }));
-    setErrors((e) => ({ ...e, [key]: null }));
+  function update(key, value) {
+    setRegistrationDraft((previous) => ({ ...previous, form: { ...(previous?.form || EMPTY_FORM), [key]: value },
+      ...(key === "phone" ? { registrationToken: null, registrationExpiresAt: null, otpSentAt: null } : {}) }));
+    setErrors((previous) => ({ ...previous, [key]: null, _global: null }));
   }
-
-  // ── Validate per step ─────────────────────────────
-  function validateStep() {
-    let errs = {};
-    if (step === 1) {
-      errs.fullName    = validateRequired(form.fullName, "الاسم الرباعي بالعربي");
-      errs.fullNameEn  = validateNameEn(form.fullNameEn);
-      errs.nationalId  = validateNationalId(form.nationalId);
-      errs.dateOfBirth = validateRequired(form.dateOfBirth, "تاريخ الميلاد");
-      errs.placeOfBirth = validateRequired(form.placeOfBirth, "مكان الميلاد");
-      errs.address     = validateRequired(form.address, "مكان السكن");
-    }
-    if (step === 2) {
-      errs.phone = validatePhone(form.phone);
-    }
-    if (step === 3) {
-      if (!form.documentType)    errs.documentType    = "اختر نوع الوثيقة";
-
-    }
-    if (step === 4) {
-      errs.username = validateUsername(form.username);
-      errs.password = validatePassword(form.password);
-      if (!form.confirmPassword)        errs.confirmPassword = "تأكيد كلمة المرور مطلوب";
-      else if (form.password !== form.confirmPassword) errs.confirmPassword = "كلمتا المرور غير متطابقتين";
-    }
-    setErrors(errs);
-    return !Object.values(errs).some(Boolean);
+  function setStep(value) {
+    setRegistrationDraft((previous) => ({ ...previous, form: previous?.form || EMPTY_FORM,
+      step: typeof value === "function" ? value(previous?.step || 1) : value }));
   }
-
+  function selectFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const error = validateDocument(file);
+    setErrors((previous) => ({ ...previous, documentFile: error, _global: null }));
+    setRegistrationDraft((previous) => ({ ...previous, documentFile: error ? null : file }));
+    if (error) event.target.value = "";
+  }
+  function errorsForStep(number) {
+    if (number === 1) return {
+      fullName: validateRequired(form.fullName, "الاسم بالعربي"), fullNameEn: validateNameEn(form.fullNameEn),
+      nationalId: validateNationalId(form.nationalId), dateOfBirth: validateRequired(form.dateOfBirth, "تاريخ الميلاد") ||
+        (new Date(form.dateOfBirth) >= new Date() ? "تاريخ الميلاد يجب أن يكون في الماضي" : null),
+      placeOfBirth: validateRequired(form.placeOfBirth, "مكان الميلاد"), address: validateRequired(form.address, "مكان السكن"),
+    };
+    if (number === 2) return { phone: validatePhone(form.phone) };
+    if (number === 3) return { documentType: form.documentType ? null : "اختر نوع الوثيقة", documentFile: validateDocument(documentFile) };
+    return {};
+  }
   function next() {
-    if (!validateStep()) return;
-    setStep((s) => s + 1);
+    const errors = errorsForStep(step);
+    setErrors(errors);
+    if (!Object.values(errors).some(Boolean)) setStep(step + 1);
   }
-
   async function handleSubmit() {
-    if (loading) return;
+    if (inFlight.current) return;
+    for (const number of [1, 2, 3]) {
+      const errors = errorsForStep(number);
+      if (Object.values(errors).some(Boolean)) { setErrors(errors); setStep(number); return; }
+    }
+    inFlight.current = true;
     setLoading(true);
+    setErrors({});
     try {
-      const result = await registerUser(form);
-      setPendingOtp({ username: result.user?.username || form.username, password: form.password,
-        purpose: "REGISTER", phone: result.user?.phone || form.phone, from: "/home" });
-      setForm((previous) => ({ ...previous, password: "", confirmPassword: "" }));
-      navigate("/otp");
+      await sendPhoneOtp(form.phone);
+      if (!active.current) return;
+      setRegistrationDraft((previous) => ({ ...previous, registrationToken: null, registrationExpiresAt: null, otpSentAt: Date.now() }));
+      setPendingOtp({ flow: "phone-registration", phone: form.phone });
+      navigate("/otp", { state: { flow: "phone-registration" } });
     } catch (error) {
-      setErrors({ ...error.fieldErrors, _global: error.message });
-      const fields = Object.keys(error.fieldErrors || {});
-      if (fields.some((field) => ["fullName", "fullNameEn", "nationalId", "dateOfBirth", "placeOfBirth", "address"].includes(field))) setStep(1);
-      else if (fields.includes("phone")) setStep(2);
-      else if (fields.includes("documentType")) setStep(3);
-      else if (fields.length) setStep(4);
+      if (active.current) setErrors({ ...error.fieldErrors, _global: error.message });
     } finally {
-      setLoading(false);
+      inFlight.current = false;
+      if (active.current) setLoading(false);
     }
   }
-
   return (
     <div className="bg-animated" style={{ minHeight: "100vh" }}>
       <Header title="إنشاء حساب جديد" showBack backTo="/" />
@@ -138,7 +95,7 @@ export default function RegisterPage() {
           <p style={{ textAlign: "center", color: "var(--text-secondary)", fontSize: 13, marginBottom: 20 }}>
             أنشئ حسابك وابدأ باستلام الحوالات بسهولة
           </p>
-          <StepBar current={step} total={TOTAL} />
+          <RegistrationSteps current={step} />
         </div>
 
         <div className="glass-card animate-fade-in-up" style={{ padding: 22, animationDelay: "0.05s" }}>
@@ -229,7 +186,7 @@ export default function RegisterPage() {
                     <button key={d.id} id={`doc-${d.id}`}
                       className={`selectable-card ${form.documentType === d.id ? "selected" : ""}`}
                       style={{ flex: 1, textAlign: "center", padding: "12px 8px", fontSize: 12, fontFamily: "Tajawal, sans-serif", cursor: "pointer" }}
-                      onClick={() => { update("documentType", d.id); update("documentUploaded", false); }}
+                      onClick={() => update("documentType", d.id)}
                     >
                       <div style={{ fontSize: 22, marginBottom: 4 }}>{d.icon}</div>
                       <div style={{ fontWeight: 600, fontSize: 11 }}>{d.label}</div>
@@ -239,69 +196,26 @@ export default function RegisterPage() {
                 <FieldErr msg={errors.documentType} />
               </div>
 
+              <div>
+                <label className="form-label" htmlFor="reg-document-file">ملف الوثيقة</label>
+                <input id="reg-document-file" className="input-field" type="file"
+                  accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" onChange={selectFile} />
+                <FieldErr msg={errors.documentFile} />
+                {documentFile && <p style={{ color: "var(--accent)", fontSize: 13, marginTop: 8 }}>
+                  ملف محدد: {documentFile.name} ({(documentFile.size / 1024).toFixed(1)} KB)
+                </p>}
+                <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>JPEG / PNG / PDF — حتى 5 ميغابايت. الملف لم يُرفع بعد.</p>
+              </div>
               <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.7 }}>
-                رفع الوثيقة الفعلي يتم بعد تأكيد رمز OTP وتسجيل الدخول. ربط الرفع هو المرحلة التالية من Sprint 5.
+                اختَر الوثيقة الآن. سيتم رفعها وإكمال KYC التجريبي عند إنشاء الحساب بعد OTP وبيانات الدخول.
               </p>
             </div>
           )}
-          {/* ── STEP 4: Username + Password ── */}
+          {/* ── STEP 4: KYC + Review ── */}
           {step === 4 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--primary-light)", marginBottom: 2 }}>
-                🔐 إنشاء بيانات الدخول
-              </h3>
-
-              {errors._global && (
-                <div style={{ background: "rgba(255,107,107,0.1)", border: "1px solid rgba(255,107,107,0.3)", borderRadius: 10, padding: "10px 14px", color: "var(--danger)", fontSize: 13 }}>
-                  {errors._global}
-                </div>
-              )}
-
-              <div>
-                <label className="form-label">اسم المستخدم (Username)</label>
-                <input id="reg-username" className="input-field" placeholder="مثال: ahmad.2024"
-                  value={form.username} onChange={(e) => update("username", e.target.value.toLowerCase())} dir="ltr" autoComplete="username" />
-                <FieldErr msg={errors.username} />
-                <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                  أحرف إنجليزية وأرقام ونقطة وشرطة سفلية فقط
-                </p>
-              </div>
-
-              <div>
-                <label className="form-label">كلمة المرور</label>
-                <div style={{ position: "relative" }}>
-                  <input id="reg-password" className="input-field" type={showPass ? "text" : "password"}
-                    placeholder="6 أحرف على الأقل" value={form.password}
-                    onChange={(e) => update("password", e.target.value)} dir="ltr" style={{ paddingLeft: 44 }} autoComplete="new-password" />
-                  <button type="button" onClick={() => setShowPass(!showPass)}
-                    style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
-                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                <FieldErr msg={errors.password} />
-              </div>
-
-              <div>
-                <label className="form-label">تأكيد كلمة المرور</label>
-                <div style={{ position: "relative" }}>
-                  <input id="reg-confirm-password" className="input-field" type={showConfirm ? "text" : "password"}
-                    placeholder="أعد إدخال كلمة المرور" value={form.confirmPassword}
-                    onChange={(e) => update("confirmPassword", e.target.value)} dir="ltr" style={{ paddingLeft: 44 }} autoComplete="new-password" />
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                    style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
-                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                <FieldErr msg={errors.confirmPassword} />
-              </div>
-            </div>
-          )}
-
-          {/* ── STEP 5: Review ── */}
-          {step === 5 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--primary-light)", marginBottom: 6 }}>
-                ✅ مراجعة البيانات
+                🛡️ معاينة KYC ومراجعة البيانات
               </h3>
               {[
                 ["الاسم بالعربي",  form.fullName],
@@ -312,13 +226,17 @@ export default function RegisterPage() {
                 ["مكان السكن",     form.address],
                 ["رقم الهاتف",     form.phone],
                 ["نوع الوثيقة",    DOC_TYPES.find((d) => d.id === form.documentType)?.label],
-                ["اسم المستخدم",   form.username],
+                ["الملف المحدد", documentFile?.name],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "9px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 10, fontSize: 13 }}>
                   <span style={{ color: "var(--text-secondary)" }}>{k}</span>
                   <span style={{ fontWeight: 600, direction: "ltr", maxWidth: "60%", textAlign: "left", wordBreak: "break-all" }}>{v}</span>
                 </div>
               ))}
+              <div style={{ background: "rgba(255,217,61,0.08)", border: "1px solid rgba(255,217,61,0.25)", padding: 14, borderRadius: 12, color: "var(--warning)", fontSize: 13, lineHeight: 1.8 }}>
+                KYC بانتظار الإكمال: تم اختيار الوثيقة للمراجعة فقط. بعد تأكيد الهاتف وإنشاء بيانات الدخول، يحفظ الخادم الوثيقة ويقرر نتيجة التحقق التجريبي.
+                التحقق بالوجه للعرض فقط؛ لا توجد مطابقة حقيقية.
+              </div>
               {errors._global && (
                 <div style={{ background: "rgba(255,107,107,0.1)", border: "1px solid rgba(255,107,107,0.3)", borderRadius: 10, padding: "10px 14px", color: "var(--danger)", fontSize: 13, marginTop: 6 }}>
                   {errors._global}
@@ -328,6 +246,7 @@ export default function RegisterPage() {
           )}
         </div>
 
+        {step !== 4 && errors._global && <p role="alert" style={{ color: "var(--danger)", marginTop: 12 }}>{errors._global}</p>}
         {/* Navigation buttons */}
         <div className="animate-fade-in-up" style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10, animationDelay: "0.1s" }}>
           {step < TOTAL ? (
@@ -339,14 +258,14 @@ export default function RegisterPage() {
               {loading ? (
                 <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                   <span className="animate-spin" style={{ width: 18, height: 18, border: "2px solid #0D0E1A", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block" }} />
-                  جارٍ إنشاء الحساب...
+                  جارٍ إرسال رمز التحقق...
                 </span>
               ) : "إرسال رمز التحقق ←"}
             </button>
           )}
 
           {step > 1 && (
-            <button className="btn-secondary" onClick={() => setStep((s) => s - 1)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <button className="btn-secondary" disabled={loading} onClick={() => setStep((s) => s - 1)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <ChevronLeft size={15} /> رجوع
             </button>
           )}
@@ -364,4 +283,6 @@ export default function RegisterPage() {
     </div>
   );
 }
+
+
 

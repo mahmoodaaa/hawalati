@@ -1,5 +1,6 @@
-﻿import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+﻿import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 
 // Auth pages
@@ -7,6 +8,7 @@ import WelcomePage from "./features/auth/pages/WelcomePage";
 import RegisterPage from "./features/auth/pages/RegisterPage";
 import LoginPage from "./features/auth/pages/LoginPage";
 import OtpPage from "./features/auth/pages/OtpPage";
+import CreateCredentialsPage from "./features/auth/pages/CreateCredentialsPage";
 
 // KYC
 import KycPage from "./features/kyc/pages/KycPage";
@@ -21,16 +23,28 @@ import SuccessPage from "./features/remittance/pages/SuccessPage";
 import HistoryPage from "./features/remittance/pages/HistoryPage";
 import ProfilePage from "./features/auth/pages/ProfilePage";
 
+function RegistrationLifecycle() {
+  const { pathname } = useLocation();
+  const { clearRegistration } = useAuth();
+  useEffect(() => {
+    if (!["/register", "/otp", "/create-credentials", "/credentials"].includes(pathname)) clearRegistration();
+  }, [pathname, clearRegistration]);
+  return null;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <RegistrationLifecycle />
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<WelcomePage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/otp" element={<OtpPage />} />
+          <Route path="/create-credentials" element={<CreateCredentialsPage />} />
+          <Route path="/credentials" element={<Navigate to="/create-credentials" replace />} />
 
           {/* Semi-protected: KYC (user logged in but needs KYC) */}
           <Route
@@ -115,5 +129,6 @@ export default function App() {
     </AuthProvider>
   );
 }
+
 
 

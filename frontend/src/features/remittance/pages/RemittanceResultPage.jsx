@@ -1,5 +1,5 @@
-import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+﻿import { useNavigate, useLocation, Navigate } from "react-router-dom";
+import { isRemittanceId } from "../../../services/remittanceService";
 import { CheckCircle, XCircle, AlertTriangle, Shuffle } from "lucide-react";
 import Header from "../../../components/layout/Header";
 import { formatAmount } from "../../../utils/formatters";
@@ -10,11 +10,7 @@ export default function RemittanceResultPage() {
   const location = useLocation();
   const { result, query } = location.state || {};
 
-  useEffect(() => {
-    if (!result) navigate("/check-remittance", { replace: true });
-  }, []);
-
-  if (!result) return null;
+  if (!result || (result.status === "AVAILABLE" && !isRemittanceId(result.remittance?.id))) return <Navigate to="/check-remittance" replace />;
 
   const provider = EXCHANGE_PROVIDERS.find((p) => p.id === query?.providerId);
   const { status, remittance } = result;
@@ -85,7 +81,7 @@ export default function RemittanceResultPage() {
                 <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
                   المبلغ التقريبي الذي أدخلته:{" "}
                   <span style={{ fontWeight: 600 }}>
-                    {formatAmount(query.approxAmount, remittance.currency)}
+                    {formatAmount(query.approxAmount, "JOD")}
                   </span>
                 </p>
               )}
@@ -302,7 +298,7 @@ export default function RemittanceResultPage() {
             <ul style={{ paddingRight: 16, marginTop: 6, lineHeight: 1.8 }}>
               <li>الرقم المرجعي غير صحيح</li>
               <li>الحوالة لم تُرسَل بعد</li>
-              <li>خطأ في اختيار شركة التحويل</li>
+              <li>خطأ في اختيار شركة التحويل</li><li>المبلغ أو بيانات المستفيد غير متطابقة، أو انتهت صلاحية الحوالة</li>
             </ul>
           </div>
         </div>
@@ -317,3 +313,4 @@ export default function RemittanceResultPage() {
     </div>
   );
 }
+

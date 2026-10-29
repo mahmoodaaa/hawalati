@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, LogIn } from "lucide-react";
-import { loginUser, resendOtp } from "../../../services/authService";
+import { loginUser } from "../../../services/authService";
 import { useAuth } from "../../../context/AuthContext";
 
 export default function LoginPage() {
@@ -28,27 +28,6 @@ export default function LoginPage() {
       const result = await loginUser(username.trim(), password);
       setPendingOtp({ username: result.user?.username || username.trim(), password,
         purpose: "LOGIN", phone: result.user?.phone, from: location.state?.from || "/home" });
-      setPassword("");
-      navigate("/otp");
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function resumeRegistration() {
-    if (loading) return;
-    if (!username.trim() || !password) {
-      setError("أدخل اسم المستخدم وكلمة المرور للحساب الذي لم يكتمل تفعيله.");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    try {
-      const result = await resendOtp(username.trim(), password, "REGISTER");
-      setPendingOtp({ username: result.user?.username || username.trim(), password,
-        purpose: "REGISTER", phone: result.user?.phone, from: "/home" });
       setPassword("");
       navigate("/otp");
     } catch (error) {
@@ -190,10 +169,6 @@ export default function LoginPage() {
                 تسجيل الدخول ←
               </span>
             )}
-          </button>
-          <button type="button" className="btn-primary" disabled={loading} onClick={resumeRegistration}
-            style={{ marginTop: 12 }}>
-            متابعة تفعيل حساب لم يكتمل تسجيله
           </button>
         </form>
 

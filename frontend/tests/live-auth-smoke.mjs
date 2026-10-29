@@ -10,6 +10,7 @@ globalThis.localStorage = {
   removeItem: (key) => storage.delete(key),
 };
 const { apiRequest, setSession, getSession } = await import('../src/services/apiClient.js');
+const { sendPhoneOtp, verifyPhoneOtp, completeRegistration } = await import('../src/services/authService.js');
 const post = (path, body) => apiRequest(`/api/auth/${path}`, { auth: false, method: 'POST', body });
 const username = `sprint5.${Date.now()}`;
 const password = `Demo-${randomUUID()}`;
@@ -21,20 +22,23 @@ const form = {
 };
 
 try {
-  const pending = await post('register', form);
-  assert.equal(pending.user.username, username);
-  assert.equal(pending.accessToken, undefined);
+  await assert.rejects(post('register', form), { status: 404 });
+  await sendPhoneOtp(form.phone);
+  await assert.rejects(verifyPhoneOtp(form.phone, '000000'), { status: 400 });
+  const verified = await verifyPhoneOtp(form.phone, '123456');
+  assert.ok(verified.registrationToken);
   assert.equal(getSession(), null);
-  console.log(`Created fictional backend test account: ${username}`);
-  await assert.rejects(post('verify-otp', { username, code: '000000', purpose: 'REGISTER' }));
-  await post('resend-otp', { username, password, purpose: 'REGISTER' });
-  const registered = await post('verify-otp', { username, code: '123456', purpose: 'REGISTER' });
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=', 'base64');
+  const registered = await completeRegistration(verified.registrationToken, form,
+    new File([png], 'identity.png', { type: 'image/png' }));
   assert.ok(registered.accessToken && registered.refreshToken);
   setSession(registered);
   let profile = await apiRequest('/api/user/profile');
   assert.equal(profile.username, username);
-  assert.equal(profile.kycStatus, 'PENDING');
-  console.log('PASS Register → wrong OTP rejected → resend → REGISTER OTP → authenticated profile');
+  assert.equal(profile.kycStatus, 'DEMO_VERIFIED');
+  await assert.rejects(post('verify-otp', { username, code: '123456', purpose: 'REGISTER' }), { status: 400 });
+  await assert.rejects(post('resend-otp', { username, password, purpose: 'REGISTER' }), { status: 400 });
+  console.log('PASS phone OTP -> registration JWT -> complete registration; legacy registration rejected');
 
   // A rejected access token triggers the same refresh path as an expired JWT.
   setSession({ accessToken: 'expired-test-token', refreshToken: getSession().refreshToken });

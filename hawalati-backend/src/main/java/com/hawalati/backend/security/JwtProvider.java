@@ -20,6 +20,7 @@ public class JwtProvider {
 
     public static final String TOKEN_TYPE_ACCESS = "access";
     public static final String TOKEN_TYPE_REFRESH = "refresh";
+    public static final String TOKEN_TYPE_REGISTRATION = "registration";
 
     private final JwtProperties jwtProperties;
     private final SecretKey signingKey;
@@ -36,6 +37,46 @@ public class JwtProvider {
     public String generateRefreshToken(User user) {
         return generateToken(user, jwtProperties.refreshTokenExpiration(), TOKEN_TYPE_REFRESH);
     }
+
+
+    public String generateRegistrationToken(String phone) {
+        Date now = new Date();
+
+        return Jwts.builder()
+                .id(UUID.randomUUID().toString())
+                .subject(phone)
+                .claim("type", TOKEN_TYPE_REGISTRATION)
+                .claim("purpose", "REGISTRATION")
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + 15 * 60 * 1000L))
+                .signWith(signingKey)
+                .compact();
+    }
+
+    public String validateRegistrationToken(String token) {
+        Claims claims = parseClaims(token);
+
+        if (!TOKEN_TYPE_REGISTRATION.equals(
+                claims.get("type", String.class))
+                || !"REGISTRATION".equals(
+                claims.get("purpose", String.class))) {
+            throw new IllegalArgumentException(
+                    "Invalid registration token"
+            );
+        }
+
+        String phone = claims.getSubject();
+
+        if (phone == null || phone.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Registration phone is missing"
+            );
+        }
+
+        return phone;
+    }
+
+
 
     public UUID extractUserId(String token) {
         return UUID.fromString(parseClaims(token).getSubject());
@@ -84,6 +125,9 @@ public class JwtProvider {
                 .signWith(signingKey)
                 .compact();
     }
+
+
+
 
     private SecretKey buildSigningKey(String secret) {
         if (secret == null || secret.isBlank()) {

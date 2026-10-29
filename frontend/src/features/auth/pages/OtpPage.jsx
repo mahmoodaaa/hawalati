@@ -1,21 +1,29 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+﻿import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { RefreshCw } from "lucide-react";
 import Header from "../../../components/layout/Header";
+import RegistrationRestart from "../components/RegistrationRestart";
+import RegistrationSteps from "../components/RegistrationSteps";
 import OtpInput from "../../../components/ui/OtpInput";
-import { verifyOtp, resendOtp } from "../../../services/authService";
+import { verifyOtp, resendOtp, verifyPhoneOtp, sendPhoneOtp } from "../../../services/authService";
 import { useAuth } from "../../../context/AuthContext";
 import { maskPhone } from "../../../utils/formatters";
 
 export default function OtpPage() {
   const navigate = useNavigate();
-  const { login, pendingOtp, isAuthenticated } = useAuth();
-  const phone = pendingOtp?.phone;
+  const location = useLocation();
+  const { login, pendingOtp, isAuthenticated, registrationDraft, setRegistrationDraft } = useAuth();
+  const registrationFlow = location.state?.flow === "phone-registration" || pendingOtp?.flow === "phone-registration";
+  const missingRegistration = registrationFlow && !registrationDraft?.documentFile;
+  const inFlight = useRef(false);
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+  const phone = registrationFlow ? registrationDraft?.form?.phone : pendingOtp?.phone;
 
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(60);
+  const [countdown, setCountdown] = useState(() => registrationFlow ? Math.max(0, Math.ceil((60000 - (Date.now() - (registrationDraft?.otpSentAt || 0))) / 1000)) : 60);
 
   // Countdown timer
   useEffect(() => {
@@ -26,48 +34,71 @@ export default function OtpPage() {
 
   // Guard: if no user state, go back
   useEffect(() => {
-    if (!pendingOtp && !isAuthenticated) navigate("/login", { replace: true });
-  }, [pendingOtp, isAuthenticated, navigate]);
+    if (!registrationFlow && !pendingOtp && !isAuthenticated) navigate("/login", { replace: true });
+  }, [registrationFlow, pendingOtp, isAuthenticated, navigate]);
 
   async function handleVerify() {
-    if (loading || !pendingOtp) return;
+    if (inFlight.current || (registrationFlow ? missingRegistration : !pendingOtp)) return;
     if (otp.length < 6) {
       setError("أدخل الرمز المكون من 6 أرقام");
       return;
     }
+    inFlight.current = true;
     setLoading(true);
     setError("");
     try {
-      const result = await verifyOtp(pendingOtp.username, otp, pendingOtp.purpose);
-      const user = await login(result);
-      const destination = pendingOtp.from?.startsWith("/") && !pendingOtp.from.startsWith("//") ? pendingOtp.from : "/home";
-      navigate(["VERIFIED", "DEMO_VERIFIED"].includes(user.kycStatus) ? destination : "/kyc", { replace: true });
+      if (registrationFlow) {
+        const result = await verifyPhoneOtp(phone, otp);
+        if (!active.current) return;
+        if (!result?.registrationToken || !(result.expiresIn > 0)) throw new Error("لم يُرجع الخادم تصريح تسجيل صالحًا. أعد إرسال الرمز.");
+        setRegistrationDraft((previous) => ({ ...previous, registrationToken: result.registrationToken,
+          registrationExpiresAt: Date.now() + result.expiresIn * 1000 }));
+        navigate("/create-credentials", { replace: true });
+      } else {
+        const result = await verifyOtp(pendingOtp.username, otp);
+        if (!active.current) return;
+        const user = await login(result);
+        const destination = pendingOtp.from?.startsWith("/") && !pendingOtp.from.startsWith("//") ? pendingOtp.from : "/home";
+        navigate(["VERIFIED", "DEMO_VERIFIED"].includes(user.kycStatus) ? destination : "/kyc", { replace: true });
+      }
     } catch (error) {
-      setError(error.message);
+      if (active.current) setError(error.message);
     } finally {
-      setLoading(false);
+      inFlight.current = false;
+      if (active.current) setLoading(false);
     }
   }
 
   async function handleResend() {
-    if (loading || countdown > 0 || !pendingOtp) return;
+    if (inFlight.current || countdown > 0 || (registrationFlow ? missingRegistration : !pendingOtp)) return;
+    inFlight.current = true;
     setLoading(true);
     setError("");
     try {
-      await resendOtp(pendingOtp.username, pendingOtp.password, pendingOtp.purpose);
+      if (registrationFlow) {
+        await sendPhoneOtp(phone);
+        if (!active.current) return;
+        setRegistrationDraft((previous) => ({ ...previous, registrationToken: null, registrationExpiresAt: null, otpSentAt: Date.now() }));
+      } else {
+        await resendOtp(pendingOtp.username, pendingOtp.password);
+      }
       setCountdown(60);
       setOtp("");
     } catch (error) {
-      setError(error.message);
+      if (active.current) setError(error.message);
     } finally {
-      setLoading(false);
+      inFlight.current = false;
+      if (active.current) setLoading(false);
     }
   }
 
+  if (missingRegistration) return <RegistrationRestart />;
+
   return (
     <div className="bg-animated" style={{ minHeight: "100vh" }}>
-      <Header showBack backTo={pendingOtp?.purpose === "REGISTER" ? "/register" : "/login"} />
+      <Header showBack backTo={registrationFlow ? "/register" : "/login"} />
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px" }}>
+        {registrationFlow && <RegistrationSteps current={5} />}
         <div className="animate-fade-in-up" style={{ textAlign: "center", marginBottom: 32 }}>
           <div
             style={{
@@ -184,3 +215,4 @@ export default function OtpPage() {
     </div>
   );
 }
+
