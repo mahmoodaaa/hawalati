@@ -1,4 +1,5 @@
-﻿import { useNavigate, useLocation, Navigate } from "react-router-dom";
+import { t } from '../../../i18n/translate.js';
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { isRemittanceId } from "../../../services/remittanceService";
 import { CheckCircle, XCircle, AlertTriangle, Shuffle } from "lucide-react";
 import Header from "../../../components/layout/Header";
@@ -19,7 +20,7 @@ export default function RemittanceResultPage() {
   if (status === "AVAILABLE") {
     return (
       <div className="bg-animated" style={{ minHeight: "100vh" }}>
-        <Header title="نتيجة التحقق" showBack backTo="/check-remittance" />
+        <Header title={t("نتيجة التحقق")} showBack backTo="/check-remittance" />
         <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px" }}>
           {/* Success header */}
           <div className="animate-fade-in-up" style={{ textAlign: "center", marginBottom: 24 }}>
@@ -39,12 +40,8 @@ export default function RemittanceResultPage() {
             >
               <CheckCircle size={36} color="var(--success)" />
             </div>
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--success)", marginBottom: 4 }}>
-              الحوالة متاحة! ✅
-            </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-              تم العثور على الحوالة وهي جاهزة للاستلام
-            </p>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--success)", marginBottom: 4 }}>{t("الحوالة متاحة! ✅")} </h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t("تم العثور على الحوالة وهي جاهزة للاستلام")} </p>
           </div>
 
           {/* Remittance details */}
@@ -52,9 +49,7 @@ export default function RemittanceResultPage() {
             className="glass-card animate-fade-in-up"
             style={{ padding: 20, marginBottom: 16, animationDelay: "0.05s" }}
           >
-            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", marginBottom: 14 }}>
-              تفاصيل الحوالة
-            </p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", marginBottom: 14 }}>{t("تفاصيل الحوالة")} </p>
 
             {/* Amount highlight */}
             <div
@@ -67,19 +62,17 @@ export default function RemittanceResultPage() {
                 marginBottom: 16,
               }}
             >
-              <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>مبلغ الحوالة</p>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>{t("مبلغ الحوالة")}</p>
               <p style={{ fontSize: 32, fontWeight: 900, color: "var(--success)" }}>
                 {formatAmount(remittance.amount, remittance.currency)}
               </p>
               {remittance.currency !== "JOD" && (
                 <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
-                  ≈ {formatAmount(remittance.amountJOD)} (بعد التحويل)
-                </p>
+                  ≈ {formatAmount(remittance.amountJOD)}{t("(بعد التحويل)")} </p>
               )}
               {/* Compare with approx — show currency clearly */}
               {query?.approxAmount && (
-                <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-                  المبلغ التقريبي الذي أدخلته:{" "}
+                <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>{t("المبلغ التقريبي الذي أدخلته:")}{" "}
                   <span style={{ fontWeight: 600 }}>
                     {formatAmount(query.approxAmount, "JOD")}
                   </span>
@@ -89,11 +82,11 @@ export default function RemittanceResultPage() {
 
             {/* Details rows */}
             {[
-              ["رقم المرجع", remittance.referenceNumber],
-              ["المُرسِل", remittance.senderName],
-              ["البلد المُرسِل", remittance.senderCountry],
-              ["شركة التحويل", provider?.name || remittance.provider],
-              ["العملة", remittance.currency],
+              [t("رقم المرجع"), remittance.referenceNumber],
+              [t("المُرسِل"), remittance.senderName],
+              [t("البلد المُرسِل"), remittance.senderCountry],
+              [t("شركة التحويل"), provider?.name || remittance.provider],
+              [t("العملة"), remittance.currency],
             ].map(([k, v]) => (
               <div
                 key={k}
@@ -105,7 +98,7 @@ export default function RemittanceResultPage() {
                   fontSize: 13,
                 }}
               >
-                <span style={{ color: "var(--text-secondary)" }}>{k}</span>
+                <span style={{ color: "var(--text-secondary)" }}>{t(k)}</span>
                 <span style={{ fontWeight: 600, direction: "ltr" }}>{v}</span>
               </div>
             ))}
@@ -121,16 +114,12 @@ export default function RemittanceResultPage() {
               })
             }
             style={{ animationDelay: "0.1s" }}
-          >
-            اختيار وجهة الاستلام ←
-          </button>
+          >{t("اختيار وجهة الاستلام ←")} </button>
           <button
             className="btn-secondary"
             onClick={() => navigate("/home")}
             style={{ marginTop: 10 }}
-          >
-            إلغاء والعودة للرئيسية
-          </button>
+          >{t("إلغاء والعودة للرئيسية")} </button>
         </div>
       </div>
     );
@@ -140,7 +129,7 @@ export default function RemittanceResultPage() {
   if (status === "ALREADY_RECEIVED") {
     return (
       <div className="bg-animated" style={{ minHeight: "100vh" }}>
-        <Header title="نتيجة التحقق" showBack backTo="/check-remittance" />
+        <Header title={t("نتيجة التحقق")} showBack backTo="/check-remittance" />
         <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px" }}>
           <div className="animate-fade-in-up" style={{ textAlign: "center", marginBottom: 24 }}>
             <div
@@ -154,12 +143,8 @@ export default function RemittanceResultPage() {
             >
               <AlertTriangle size={36} color="var(--warning)" />
             </div>
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--warning)", marginBottom: 4 }}>
-              مستلمة مسبقاً
-            </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-              هذه الحوالة تمت معالجتها واستلامها من قبل.
-            </p>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--warning)", marginBottom: 4 }}>{t("مستلمة مسبقاً")} </h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t("هذه الحوالة تمت معالجتها واستلامها من قبل.")} </p>
           </div>
 
           <div
@@ -167,20 +152,13 @@ export default function RemittanceResultPage() {
             style={{ padding: 20, marginBottom: 16, animationDelay: "0.05s" }}
           >
             <div style={{ textAlign: "center", padding: "8px 0" }}>
-              <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.8 }}>
-                رقم الحوالة: <strong style={{ direction: "ltr", display: "inline-block" }}>{query?.referenceNumber}</strong>
-                <br />
-                إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع جهة الإرسال.
-              </p>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.8 }}>{t("رقم الحوالة:")} <strong style={{ direction: "ltr", display: "inline-block" }}>{query?.referenceNumber}</strong>
+                <br />{t("إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع جهة الإرسال.")} </p>
             </div>
           </div>
 
-          <button className="btn-primary" onClick={() => navigate("/check-remittance")}>
-            التحقق من حوالة أخرى
-          </button>
-          <button className="btn-secondary" onClick={() => navigate("/home")} style={{ marginTop: 10 }}>
-            العودة للرئيسية
-          </button>
+          <button className="btn-primary" onClick={() => navigate("/check-remittance")}>{t("التحقق من حوالة أخرى")} </button>
+          <button className="btn-secondary" onClick={() => navigate("/home")} style={{ marginTop: 10 }}>{t("العودة للرئيسية")} </button>
         </div>
       </div>
     );
@@ -191,7 +169,7 @@ export default function RemittanceResultPage() {
     const correctProvider = EXCHANGE_PROVIDERS.find((p) => p.id === result.expectedProvider);
     return (
       <div className="bg-animated" style={{ minHeight: "100vh" }}>
-        <Header title="نتيجة التحقق" showBack backTo="/check-remittance" />
+        <Header title={t("نتيجة التحقق")} showBack backTo="/check-remittance" />
         <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px" }}>
           <div className="animate-fade-in-up" style={{ textAlign: "center", marginBottom: 24 }}>
             <div
@@ -205,12 +183,8 @@ export default function RemittanceResultPage() {
             >
               <Shuffle size={36} color="var(--primary-light)" />
             </div>
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--primary-light)", marginBottom: 4 }}>
-              شركة التحويل غير مطابقة
-            </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-              رقم الحوالة موجود لكن تحت شركة مختلفة
-            </p>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--primary-light)", marginBottom: 4 }}>{t("شركة التحويل غير مطابقة")} </h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t("رقم الحوالة موجود لكن تحت شركة مختلفة")} </p>
           </div>
 
           <div className="glass-card animate-fade-in-up" style={{ padding: 20, marginBottom: 16, animationDelay: "0.05s" }}>
@@ -221,7 +195,7 @@ export default function RemittanceResultPage() {
                 border: "1px solid rgba(255,107,107,0.2)",
                 borderRadius: 12,
               }}>
-                <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>اخترت</p>
+                <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{t("اخترت")}</p>
                 <p style={{ fontWeight: 700, color: "var(--danger)" }}>{provider?.nameEn || query?.providerId}</p>
               </div>
               <div style={{ textAlign: "center", fontSize: 20 }}>↓</div>
@@ -231,23 +205,17 @@ export default function RemittanceResultPage() {
                 border: "1px solid rgba(0,212,170,0.2)",
                 borderRadius: 12,
               }}>
-                <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>الشركة الصحيحة</p>
+                <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{t("الشركة الصحيحة")}</p>
                 <p style={{ fontWeight: 700, color: "var(--accent)" }}>
                   {correctProvider?.nameEn || result.expectedProvider}
                 </p>
               </div>
             </div>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", marginTop: 14, lineHeight: 1.6 }}>
-              ارجع وغيّر الشركة للمطابقة الصحيحة
-            </p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", marginTop: 14, lineHeight: 1.6 }}>{t("ارجع وغيّر الشركة للمطابقة الصحيحة")} </p>
           </div>
 
-          <button id="btn-go-back-mismatch" className="btn-primary" onClick={() => navigate("/check-remittance")}>
-            إعادة المحاولة باختيار الشركة الصحيحة
-          </button>
-          <button className="btn-secondary" onClick={() => navigate("/home")} style={{ marginTop: 10 }}>
-            العودة للرئيسية
-          </button>
+          <button id="btn-go-back-mismatch" className="btn-primary" onClick={() => navigate("/check-remittance")}>{t("إعادة المحاولة باختيار الشركة الصحيحة")} </button>
+          <button className="btn-secondary" onClick={() => navigate("/home")} style={{ marginTop: 10 }}>{t("العودة للرئيسية")} </button>
         </div>
       </div>
     );
@@ -256,7 +224,7 @@ export default function RemittanceResultPage() {
   // ── Not Found ──────────────────────────────────────────
   return (
     <div className="bg-animated" style={{ minHeight: "100vh" }}>
-      <Header title="نتيجة التحقق" showBack backTo="/check-remittance" />
+      <Header title={t("نتيجة التحقق")} showBack backTo="/check-remittance" />
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px" }}>
         <div className="animate-fade-in-up" style={{ textAlign: "center", marginBottom: 24 }}>
           <div
@@ -270,20 +238,15 @@ export default function RemittanceResultPage() {
           >
             <XCircle size={36} color="var(--danger)" />
           </div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--danger)", marginBottom: 4 }}>
-            لم يتم العثور على الحوالة
-          </h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-            لا توجد حوالة بهذا الرقم في النظام حالياً.
-          </p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--danger)", marginBottom: 4 }}>{t("لم يتم العثور على الحوالة")} </h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t("لا توجد حوالة بهذا الرقم في النظام حالياً.")} </p>
         </div>
 
         <div
           className="glass-card animate-fade-in-up"
           style={{ padding: 20, marginBottom: 16, animationDelay: "0.05s" }}
         >
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.8, textAlign: "center" }}>
-            الرقم الذي أدخلته: <strong style={{ direction: "ltr", display: "inline-block" }}>{query?.referenceNumber}</strong>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.8, textAlign: "center" }}>{t("الرقم الذي أدخلته:")} <strong style={{ direction: "ltr", display: "inline-block" }}>{query?.referenceNumber}</strong>
           </p>
           <div
             style={{
@@ -294,21 +257,17 @@ export default function RemittanceResultPage() {
               color: "var(--text-muted)",
             }}
           >
-            <strong>أسباب محتملة:</strong>
+            <strong>{t("أسباب محتملة:")}</strong>
             <ul style={{ paddingRight: 16, marginTop: 6, lineHeight: 1.8 }}>
-              <li>الرقم المرجعي غير صحيح</li>
-              <li>الحوالة لم تُرسَل بعد</li>
-              <li>خطأ في اختيار شركة التحويل</li><li>المبلغ أو بيانات المستفيد غير متطابقة، أو انتهت صلاحية الحوالة</li>
+              <li>{t("الرقم المرجعي غير صحيح")}</li>
+              <li>{t("الحوالة لم تُرسَل بعد")}</li>
+              <li>{t("خطأ في اختيار شركة التحويل")}</li><li>{t("المبلغ أو بيانات المستفيد غير متطابقة، أو انتهت صلاحية الحوالة")}</li>
             </ul>
           </div>
         </div>
 
-        <button id="btn-try-again" className="btn-primary" onClick={() => navigate("/check-remittance")}>
-          إعادة المحاولة
-        </button>
-        <button className="btn-secondary" onClick={() => navigate("/home")} style={{ marginTop: 10 }}>
-          العودة للرئيسية
-        </button>
+        <button id="btn-try-again" className="btn-primary" onClick={() => navigate("/check-remittance")}>{t("إعادة المحاولة")} </button>
+        <button className="btn-secondary" onClick={() => navigate("/home")} style={{ marginTop: 10 }}>{t("العودة للرئيسية")} </button>
       </div>
     </div>
   );

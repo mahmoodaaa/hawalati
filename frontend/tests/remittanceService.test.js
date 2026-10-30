@@ -92,6 +92,18 @@ test('a reference number cannot replace the UUID, and receive requires explicit 
   await assert.rejects(receiveRemittance({ remittanceId: id, destination: { type: 'cash', details: {} }, agreed: true }));
 });
 
+test('Alawneh Pay and Dinarak are sent using the same IDs supported by the backend', async () => {
+  for (const walletId of ['alawneh_pay', 'dinarak']) {
+    globalThis.fetch = async (_url, options) => {
+      assert.equal(JSON.parse(options.body).destination.details.walletId, walletId);
+      return json({ ...transaction, destination: { type: 'wallet', walletId, walletPhone: '****4567' } });
+    };
+    const result = await receiveRemittance({ remittanceId: id, agreed: true,
+      destination: { type: 'wallet', details: { walletId, walletPhone: '0791234567' } } });
+    assert.equal(result.destination.walletId, walletId);
+  }
+});
+
 test('duplicate, validation and KYC errors propagate without producing a local success or mutating history', async () => {
   const before = [...storage.entries()];
   for (const status of [409, 400, 403]) {

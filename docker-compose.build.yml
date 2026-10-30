@@ -1,0 +1,10 @@
+# Developer/source-package build override. Not needed in the prebuilt owner ZIP.
+services:
+  backend:
+    build:
+      context: ./hawalati-backend
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /

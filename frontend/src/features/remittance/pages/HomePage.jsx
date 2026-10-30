@@ -1,4 +1,5 @@
-﻿
+import { t } from '../../../i18n/translate.js';
+
 import { useNavigate } from "react-router-dom";
 import { ArrowDownCircle } from "lucide-react";
 import Header from "../../../components/layout/Header";
@@ -31,26 +32,24 @@ export default function HomePage() {
             marginBottom: 20,
           }}
         >
-          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>مرحباً 👋</p>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>{t("مرحباً 👋")}</p>
           <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>
-            {currentUser?.fullName?.split(" ")[0] || "مستخدم"}
+            {currentUser?.fullName?.split(" ")[0] || t("مستخدم")}
           </h2>
           <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-            {kycVerified ? "حسابك جاهز لاستلام الحوالات الدولية" : "أكمل التحقق من هويتك لتتمكن من استلام الحوالات"}
+            {kycVerified ? t("حسابك جاهز لاستلام الحوالات الدولية") : t("أكمل التحقق من هويتك لتتمكن من استلام الحوالات")}
           </p>
           <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
             <span
               className={`badge ${kycVerified ? "badge-success" : "badge-warning"}`}
               style={{ fontSize: 11 }}
             >
-              {kycVerified ? "✓ KYC موثّق" : currentUser?.kycStatus === "REJECTED" ? "KYC يحتاج مراجعة" : "KYC بانتظار الإكمال"}
+              {kycVerified ? t("✓ KYC موثّق") : currentUser?.kycStatus === "REJECTED" ? t("KYC يحتاج مراجعة") : t("KYC بانتظار الإكمال")}
             </span>
             <span
               className="badge badge-primary"
               style={{ fontSize: 11 }}
-            >
-              حوالتي Demo
-            </span>
+            >{t("حوالتي Demo")} </span>
           </div>
         </div>
 
@@ -108,15 +107,15 @@ export default function HomePage() {
             >
               <ArrowDownCircle size={28} color="white" />
             </div>
-            <div style={{ textAlign: "right" }}>
+            <div style={{ textAlign: "start" }}>
               <div style={{ fontSize: 18, fontWeight: 800, color: "white", marginBottom: 3 }}>
-                {kycVerified ? "استلام حوالة" : "إكمال التحقق من الهوية"}
+                {kycVerified ? t("استلام حوالة") : t("إكمال التحقق من الهوية")}
               </div>
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
-                {kycVerified ? "تحقق من حوالتك واستلمها بسهولة" : "ارفع وثيقتك وأكمل KYC قبل استلام حوالتك"}
+                {kycVerified ? t("تحقق من حوالتك واستلمها بسهولة") : t("ارفع وثيقتك وأكمل KYC قبل استلام حوالتك")}
               </div>
             </div>
-            <div style={{ marginRight: "auto", color: "rgba(255,255,255,0.6)", fontSize: 20 }}>
+            <div style={{ marginInlineStart: "auto", color: "rgba(255,255,255,0.6)", fontSize: 20 }}>
               ←
             </div>
           </button>
@@ -124,13 +123,13 @@ export default function HomePage() {
 
         <section className="animate-fade-in-up" style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700 }}>آخر العمليات</h3>
-            <button onClick={() => navigate("/history")} style={{ background: "none", border: "none", color: "var(--primary-light)", cursor: "pointer", fontSize: 13 }}>عرض السجل كاملًا</button>
+            <h3 style={{ fontSize: 16, fontWeight: 700 }}>{t("آخر العمليات")}</h3>
+            <button onClick={() => navigate("/history")} style={{ background: "none", border: "none", color: "var(--primary-light)", cursor: "pointer", fontSize: 13 }}>{t("عرض السجل كاملًا")}</button>
           </div>
-          {loading ? <p role="status" className="glass-card" style={{ padding: 20 }}>جارٍ تحميل آخر العمليات…</p>
-            : error ? <div role="alert" className="glass-card" style={{ padding: 20 }}><p style={{ color: "var(--danger)" }}>{error}</p>
-              <button className="btn-secondary" onClick={reload} style={{ marginTop: 12 }}>إعادة المحاولة</button></div>
-              : recentTxns.length === 0 ? <p className="glass-card" style={{ padding: 20, color: "var(--text-secondary)", fontSize: 14 }}>لا توجد عمليات مكتملة حتى الآن.</p>
+          {loading ? <p role="status" className="glass-card" style={{ padding: 20 }}>{t("جارٍ تحميل آخر العمليات…")}</p>
+            : error ? <div role="alert" className="glass-card" style={{ padding: 20 }}><p style={{ color: "var(--danger)" }}>{t(error)}</p>
+              <button className="btn-secondary" onClick={reload} style={{ marginTop: 12 }}>{t("إعادة المحاولة")}</button></div>
+              : recentTxns.length === 0 ? <p className="glass-card" style={{ padding: 20, color: "var(--text-secondary)", fontSize: 14 }}>{t("لا توجد عمليات مكتملة حتى الآن.")}</p>
                 : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{recentTxns.map((transaction) => <TransactionCard key={transaction.id} transaction={transaction} compact />)}</div>}
         </section>
       </div>

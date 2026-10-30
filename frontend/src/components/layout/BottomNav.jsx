@@ -1,3 +1,4 @@
+import { t } from '../../i18n/translate.js';
 import { useNavigate, useLocation } from "react-router-dom";
 import { Home, Clock, User } from "lucide-react";
 
@@ -82,7 +83,7 @@ export default function BottomNav() {
                 />
               )}
             </div>
-            <span style={{ fontSize: 10, fontWeight: active ? 700 : 400 }}>{label}</span>
+            <span style={{ fontSize: 10, fontWeight: active ? 700 : 400 }}>{t(label)}</span>
           </button>
         );
       })}

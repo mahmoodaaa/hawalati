@@ -1,3 +1,4 @@
+import { t } from '../../../i18n/translate.js';
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Shield, Zap, Globe } from "lucide-react";
 import { useEffect } from "react";
@@ -23,24 +24,7 @@ export default function WelcomePage() {
       style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 20px" }}
     >
       {/* Demo Banner */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          background: "rgba(0,212,170,0.12)",
-          borderBottom: "1px solid rgba(0,212,170,0.3)",
-          padding: "8px 16px",
-          textAlign: "center",
-          fontSize: 12,
-          color: "var(--accent)",
-          fontWeight: 600,
-          zIndex: 100,
-        }}
-      >
-        🎯 نسخة تجريبية للعرض فقط — لا يوجد بيانات حقيقية أو تحويلات مالية فعلية
-      </div>
+      
 
       <div style={{ maxWidth: 420, width: "100%", marginTop: 40 }}>
         {/* Logo */}
@@ -72,12 +56,9 @@ export default function WelcomePage() {
               letterSpacing: "-1px",
               marginBottom: 8,
             }}
-          >
-            حوالتي
-          </h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: 16, lineHeight: 1.6 }}>
-            منصة استلام الحوالات الذكية<br />
-            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>آمنة · سريعة · موثوقة</span>
+          >{t("حوالتي")} </h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 16, lineHeight: 1.6 }}>{t("منصة استلام الحوالات الذكية")}<br />
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{t("آمنة · سريعة · موثوقة")}</span>
           </p>
         </div>
 
@@ -115,8 +96,8 @@ export default function WelcomePage() {
                 {f.icon}
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>{f.title}</div>
-                <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{f.desc}</div>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>{t(f.title)}</div>
+                <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t(f.desc)}</div>
               </div>
             </div>
           ))}
@@ -132,17 +113,13 @@ export default function WelcomePage() {
             className="btn-primary"
             onClick={() => navigate("/register")}
             style={{ fontSize: 17, padding: "16px 28px" }}
-          >
-            إنشاء حساب جديد
-          </button>
+          >{t("إنشاء حساب جديد")} </button>
           <button
             id="btn-login"
             className="btn-secondary"
             onClick={() => navigate("/login")}
             style={{ fontSize: 17, padding: "16px 28px" }}
-          >
-            تسجيل الدخول
-          </button>
+          >{t("تسجيل الدخول")} </button>
         </div>
 
         {/* Demo hint */}
@@ -157,8 +134,7 @@ export default function WelcomePage() {
             fontSize: 12,
             color: "var(--warning)",
           }}
-        >
-          💡 للعرض التجريبي: رمز OTP الثابت هو <strong>123456</strong>
+        >{t("💡 للعرض التجريبي: رمز OTP الثابت هو")} <strong>123456</strong>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
-﻿import { isRemittanceId } from "../../../services/remittanceService";
+import { t } from '../../../i18n/translate.js';
+import { isRemittanceId } from "../../../services/remittanceService";
 import { useState } from "react";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { Building2, Smartphone } from "lucide-react";
@@ -10,7 +11,7 @@ function BankForm({ data, onChange, errors }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 16 }}>
       <div>
-        <label className="form-label">البنك</label>
+        <label className="form-label">{t("البنك")}</label>
         <select
           id="bank-select"
           className="input-field"
@@ -18,16 +19,16 @@ function BankForm({ data, onChange, errors }) {
           onChange={(e) => onChange({ ...data, bankId: e.target.value, bankName: BANKS.find(b => b.id === e.target.value)?.name || "" })}
           style={{ colorScheme: "dark" }}
         >
-          <option value="">اختر البنك</option>
+          <option value="">{t("اختر البنك")}</option>
           {BANKS.map((b) => (
-            <option key={b.id} value={b.id}>{b.name}</option>
+            <option key={b.id} value={b.id}>{t(b.name)}</option>
           ))}
         </select>
-        {errors?.bankId && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.bankId}</p>}
+        {errors?.bankId && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{t(errors.bankId)}</p>}
       </div>
 
       <div>
-        <label className="form-label">رقم IBAN</label>
+        <label className="form-label">{t("رقم IBAN")}</label>
         <input
           id="bank-iban"
           className="input-field"
@@ -37,19 +38,19 @@ function BankForm({ data, onChange, errors }) {
           dir="ltr"
           style={{ fontFamily: "monospace", letterSpacing: 1 }}
         />
-        {errors?.iban && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.iban}</p>}
+        {errors?.iban && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{t(errors.iban)}</p>}
       </div>
 
       <div>
-        <label className="form-label">اسم صاحب الحساب</label>
+        <label className="form-label">{t("اسم صاحب الحساب")}</label>
         <input
           id="bank-account-name"
           className="input-field"
-          placeholder="كما هو في البنك"
+          placeholder={t("كما هو في البنك")}
           value={data.accountName || ""}
           onChange={(e) => onChange({ ...data, accountName: e.target.value })}
         />
-        {errors?.accountName && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.accountName}</p>}
+        {errors?.accountName && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{t(errors.accountName)}</p>}
       </div>
     </div>
   );
@@ -59,12 +60,14 @@ function WalletForm({ data, onChange, errors }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 16 }}>
       <div>
-        <label className="form-label">المحفظة الإلكترونية</label>
+        <label className="form-label">{t("المحفظة الإلكترونية")}</label>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {WALLETS.map((w) => (
             <button
               key={w.id}
               id={`wallet-${w.id}`}
+              type="button"
+              aria-pressed={data.walletId === w.id}
               className={`selectable-card ${data.walletId === w.id ? "selected" : ""}`}
               style={{
                 display: "flex",
@@ -72,26 +75,28 @@ function WalletForm({ data, onChange, errors }) {
                 gap: 12,
                 fontFamily: "Tajawal, sans-serif",
                 cursor: "pointer",
-                textAlign: "right",
+                textAlign: "start",
               }}
               onClick={() => onChange({ ...data, walletId: w.id, walletName: w.name })}
             >
-              <span style={{ fontSize: 24 }}>{w.icon}</span>
+              <span aria-hidden="true" style={{ width: 64, height: 48, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: w.logo ? "#fff" : "transparent", borderRadius: 8, padding: w.logo ? 6 : 0 }}>
+                {w.logo ? <img src={w.logo} alt="" width={52} height={36} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 24 }}>{w.icon}</span>}
+              </span>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{w.name}</div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{w.nameEn}</div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{t(w.name)}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{t(w.nameEn)}</div>
               </div>
               {data.walletId === w.id && (
-                <span style={{ marginRight: "auto", color: "var(--primary-light)", fontSize: 18 }}>✓</span>
+                <span style={{ marginInlineStart: "auto", color: "var(--primary-light)", fontSize: 18 }}>✓</span>
               )}
             </button>
           ))}
         </div>
-        {errors?.walletId && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.walletId}</p>}
+        {errors?.walletId && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{t(errors.walletId)}</p>}
       </div>
 
       <div>
-        <label className="form-label">رقم الهاتف المرتبط بالمحفظة</label>
+        <label className="form-label">{t("رقم الهاتف المرتبط بالمحفظة")}</label>
         <input
           id="wallet-phone"
           className="input-field"
@@ -101,7 +106,7 @@ function WalletForm({ data, onChange, errors }) {
           inputMode="tel"
           dir="ltr"
         />
-        {errors?.walletPhone && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.walletPhone}</p>}
+        {errors?.walletPhone && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{t(errors.walletPhone)}</p>}
       </div>
     </div>
   );
@@ -149,21 +154,19 @@ export default function DestinationPage() {
 
   return (
     <div className="bg-animated" style={{ minHeight: "100vh" }}>
-      <Header title="وجهة الاستلام" showBack backTo="/remittance-result" backState={{ result: { status: "AVAILABLE", remittance }, query }} />
+      <Header title={t("وجهة الاستلام")} showBack backTo="/remittance-result" backState={{ result: { status: "AVAILABLE", remittance }, query }} />
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px" }}>
         <div className="animate-fade-in-up" style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>أين تريد استلام المبلغ؟</h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-            اختر الحساب البنكي أو محفظتك الإلكترونية
-          </p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>{t("أين تريد استلام المبلغ؟")}</h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t("اختر الحساب البنكي أو محفظتك الإلكترونية")} </p>
         </div>
 
         {/* Destination type */}
         <div className="glass-card animate-fade-in-up" style={{ padding: 20, animationDelay: "0.05s" }}>
           <div style={{ display: "flex", gap: 10, marginBottom: errors.destType ? 6 : 0 }}>
             {[
-              { type: "bank", icon: <Building2 size={22} />, label: "حساب بنكي", sub: "IBAN" },
-              { type: "wallet", icon: <Smartphone size={22} />, label: "محفظة إلكترونية", sub: "زين كاش، أورنج..." },
+              { type: "bank", icon: <Building2 size={22} />, label: t("حساب بنكي"), sub: "IBAN" },
+              { type: "wallet", icon: <Smartphone size={22} />, label: t("محفظة إلكترونية"), sub: t("زين كاش، أورنج...") },
             ].map((opt) => (
               <button
                 key={opt.type}
@@ -187,13 +190,13 @@ export default function DestinationPage() {
                 <div style={{ color: destType === opt.type ? "var(--primary-light)" : "var(--text-secondary)" }}>
                   {opt.icon}
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{opt.label}</div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{t(opt.label)}</div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{opt.sub}</div>
               </button>
             ))}
           </div>
           {errors.destType && (
-            <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.destType}</p>
+            <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{t(errors.destType)}</p>
           )}
 
           {/* Conditional form */}
@@ -210,9 +213,7 @@ export default function DestinationPage() {
           className="btn-primary animate-fade-in-up"
           onClick={handleContinue}
           style={{ marginTop: 16, animationDelay: "0.1s" }}
-        >
-          مراجعة التفاصيل ←
-        </button>
+        >{t("مراجعة التفاصيل ←")} </button>
       </div>
     </div>
   );

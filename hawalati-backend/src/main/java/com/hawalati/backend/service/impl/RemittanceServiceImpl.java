@@ -46,7 +46,8 @@ public class RemittanceServiceImpl implements RemittanceService {
             "invest", "بنك الاستثمار العربي");
     private static final Map<String, String> WALLETS = Map.of(
             "zain_cash", "زين كاش", "orange_money", "أورنج موني",
-            "umniah_joy", "أمنية جوي", "cliq", "كليك - CliQ");
+            "umniah_joy", "أمنية جوي", "cliq", "كليك - CliQ",
+            "alawneh_pay", "العلاونة باي", "dinarak", "دينارك");
 
     private final UserRepository userRepository;
     private final MockRemittanceRepository mockRemittanceRepository;

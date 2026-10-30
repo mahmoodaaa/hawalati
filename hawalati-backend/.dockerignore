@@ -1,0 +1,12 @@
+**
+!pom.xml
+!src/
+!src/**
+!docker/
+!docker/application.properties
+!Dockerfile
+src/test/
+src/main/resources/application.properties
+**/.env*
+**/*.key
+**/*.pem

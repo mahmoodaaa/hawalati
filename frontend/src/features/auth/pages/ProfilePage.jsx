@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { t } from '../../../i18n/translate.js';
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Edit2, Save, X, CheckCircle } from "lucide-react";
 import Header from "../../../components/layout/Header";
@@ -10,6 +11,7 @@ import {
   validateUsername,
   validateNameEn,
   validateRequired,
+  validateDateOfBirth,
 } from "../../../utils/formatters";
 import { JORDANIAN_CITIES } from "../../../data/providers";
 
@@ -35,7 +37,7 @@ function InfoRow({ label, value, locked }) {
         border: `1px solid ${locked ? "rgba(255,255,255,0.04)" : "var(--border)"}`,
       }}
     >
-      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{label}</span>
+      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{t(label)}</span>
       <span style={{ fontSize: 13, fontWeight: 600, direction: "ltr", color: locked ? "var(--text-muted)" : "var(--text-primary)" }}>
         {value || "—"} {locked && "🔒"}
       </span>
@@ -93,6 +95,7 @@ export default function ProfilePage() {
     errs.placeOfBirth = validateRequired(form.placeOfBirth, "مكان الميلاد");
     errs.address     = validateRequired(form.address, "مكان السكن");
     errs.username    = validateUsername(form.username);
+    errs.dateOfBirth = validateDateOfBirth(form.dateOfBirth);
 
     setErrors(errs);
     return !Object.values(errs).some(Boolean);
@@ -119,17 +122,17 @@ export default function ProfilePage() {
   }
 
   if (profileLoading || profileError) return <div className="bg-animated" style={{ minHeight: "100vh", paddingBottom: 80 }}>
-    <Header title="الملف الشخصي" />
+    <Header title={t("الملف الشخصي")} />
     <div className="glass-card" style={{ maxWidth: 440, margin: "24px auto", padding: 24 }}>
-      {profileLoading ? <p role="status">جارٍ تحميل الملف الشخصي…</p> : <div role="alert"><p style={{ color: "var(--danger)" }}>{profileError}</p>
-        <button className="btn-primary" style={{ marginTop: 14 }} onClick={() => setReloadKey((value) => value + 1)}>إعادة المحاولة</button></div>}
+      {profileLoading ? <p role="status">{t("جارٍ تحميل الملف الشخصي…")}</p> : <div role="alert"><p style={{ color: "var(--danger)" }}>{t(profileError)}</p>
+        <button className="btn-primary" style={{ marginTop: 14 }} onClick={() => setReloadKey((value) => value + 1)}>{t("إعادة المحاولة")}</button></div>}
     </div><BottomNav />
   </div>;
   if (!currentUser) return null;
   const kycVerified = ["VERIFIED", "DEMO_VERIFIED"].includes(currentUser.kycStatus);
   return (
     <div className="bg-animated" style={{ minHeight: "100vh", paddingBottom: 80 }}>
-      <Header title="الملف الشخصي" />
+      <Header title={t("الملف الشخصي")} />
 
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 20px" }}>
 
@@ -151,19 +154,19 @@ export default function ProfilePage() {
               fontSize: 26, fontWeight: 800, color: "white", flexShrink: 0,
             }}
           >
-            {currentUser.fullName?.charAt(0) || "؟"}
+            {currentUser.fullName?.charAt(0) || t("؟")}
           </div>
           <div>
             <p style={{ fontSize: 17, fontWeight: 800, marginBottom: 2 }}>{currentUser.fullName}</p>
             <p style={{ fontSize: 12, color: "var(--text-muted)", direction: "ltr" }}>@{currentUser.username || "—"}</p>
             <div style={{ marginTop: 6, display: "flex", gap: 6 }}>
-              <span className={`badge ${kycVerified ? "badge-success" : "badge-warning"}`} style={{ fontSize: 10 }}>{kycVerified ? "✓ KYC موثّق" : currentUser.kycStatus}</span>
-              <span className="badge badge-primary" style={{ fontSize: 10 }}>حوالتي Demo</span>
+              <span className={`badge ${kycVerified ? "badge-success" : "badge-warning"}`} style={{ fontSize: 10 }}>{kycVerified ? t("✓ KYC موثّق") : t(currentUser.kycStatus)}</span>
+              
             </div>
           </div>
         </div>
 
-        {errors._global && <p role="alert" style={{ color: "var(--danger)" }}>{errors._global}</p>}
+        {errors._global && <p role="alert" style={{ color: "var(--danger)" }}>{t(errors._global)}</p>}
         {/* Saved notice */}
         {saved && (
           <div
@@ -174,14 +177,12 @@ export default function ProfilePage() {
               color: "var(--success)", fontSize: 13,
             }}
           >
-            <CheckCircle size={16} />
-            تم حفظ التغييرات بنجاح ✅
-          </div>
+            <CheckCircle size={16} />{t("تم حفظ التغييرات بنجاح ✅")} </div>
         )}
 
         {/* Edit toggle */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-secondary)" }}>بياناتي الشخصية</h3>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-secondary)" }}>{t("بياناتي الشخصية")}</h3>
           {!editing ? (
             <button
               id="btn-edit-profile"
@@ -194,8 +195,7 @@ export default function ProfilePage() {
                 fontFamily: "Tajawal, sans-serif",
               }}
             >
-              <Edit2 size={13} /> تعديل
-            </button>
+              <Edit2 size={13} />{t("تعديل")} </button>
           ) : (
             <div style={{ display: "flex", gap: 8 }}>
               <button
@@ -209,8 +209,7 @@ export default function ProfilePage() {
                   fontFamily: "Tajawal, sans-serif",
                 }}
               >
-                <X size={13} /> إلغاء
-              </button>
+                <X size={13} />{t("إلغاء")} </button>
               <button
                 id="btn-save-profile"
                 onClick={handleSave}
@@ -223,7 +222,7 @@ export default function ProfilePage() {
                   fontFamily: "Tajawal, sans-serif",
                 }}
               >
-                {saving ? "..." : <><Save size={13} /> حفظ</>}
+                {saving ? "..." : <><Save size={13} />{t("حفظ")}</>}
               </button>
             </div>
           )}
@@ -232,48 +231,49 @@ export default function ProfilePage() {
         <div className="glass-card animate-fade-in-up" style={{ padding: 16, animationDelay: "0.05s" }}>
 
           {/* Locked fields */}
-          <InfoRow label="الرقم الوطني 🔒" value={currentUser.nationalId} locked />
-          <InfoRow label="تاريخ الميلاد" value={currentUser.dateOfBirth} locked />
+          <InfoRow label={t("الرقم الوطني 🔒")} value={currentUser.nationalId} locked />
+          {!editing && <InfoRow label={t("تاريخ الميلاد")} value={currentUser.dateOfBirth} />}
 
           {!editing ? (
             <>
-              <InfoRow label="الاسم بالعربي"    value={currentUser.fullName} />
-              <InfoRow label="الاسم بالإنجليزي" value={currentUser.fullNameEn} />
-              <InfoRow label="مكان الميلاد"     value={currentUser.placeOfBirth} />
-              <InfoRow label="مكان السكن"        value={currentUser.address} />
-              <InfoRow label="رقم الهاتف"        value={currentUser.phone} />
-              <InfoRow label="اسم المستخدم"     value={currentUser.username} />
-              <InfoRow label="نوع الوثيقة"      value={DOC_LABELS[currentUser.documentType] || "—"} />
-              <InfoRow label="كلمة المرور"       value="••••••" />
+              <InfoRow label={t("الاسم بالعربي")}    value={currentUser.fullName} />
+              <InfoRow label={t("الاسم بالإنجليزي")} value={currentUser.fullNameEn} />
+              <InfoRow label={t("مكان الميلاد")}     value={currentUser.placeOfBirth} />
+              <InfoRow label={t("مكان السكن")}        value={currentUser.address} />
+              <InfoRow label={t("رقم الهاتف")}        value={currentUser.phone} />
+              <InfoRow label={t("اسم المستخدم")}     value={currentUser.username} />
+              <InfoRow label={t("نوع الوثيقة")}      value={t(DOC_LABELS[currentUser.documentType] || "—")} />
+              <InfoRow label={t("كلمة المرور")}       value="••••••" />
             </>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
               {[
-                { key: "fullName",     label: "الاسم بالعربي",     dir: "rtl" },
-                { key: "fullNameEn",   label: "الاسم بالإنجليزي",  dir: "ltr" },
-                { key: "placeOfBirth", label: "مكان الميلاد",      dir: "rtl" },
-                { key: "phone",        label: "رقم الهاتف",        dir: "ltr" },
-                { key: "username",     label: "اسم المستخدم",      dir: "ltr" },
-              ].map(({ key, label, dir }) => (
+                { key: "fullName",     label: t("الاسم بالعربي"),     dir: "rtl" },
+                { key: "fullNameEn",   label: t("الاسم بالإنجليزي"),  dir: "ltr" },
+                { key: "placeOfBirth", label: t("مكان الميلاد"),      dir: "rtl" },
+                { key: "phone",        label: t("رقم الهاتف"),        dir: "ltr" },
+                { key: "username",     label: t("اسم المستخدم"),      dir: "ltr" },
+                { key: "dateOfBirth", label: t("تاريخ الميلاد"), dir: "ltr", type: "date" },
+              ].map(({ key, label, dir, type = "text" }) => (
                 <div key={key}>
-                  <label className="form-label">{label}</label>
-                  <input className="input-field" value={form[key]} dir={dir}
+                  <label className="form-label">{t(label)}</label>
+                  <input className="input-field" type={type} value={form[key]} dir={dir}
                     onChange={(e) => update(key, e.target.value)} />
-                  {errors[key] && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{errors[key]}</p>}
+                  {errors[key] && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{t(errors[key])}</p>}
                 </div>
               ))}
 
               {/* Address select */}
               <div>
-                <label className="form-label">مكان السكن</label>
+                <label className="form-label">{t("مكان السكن")}</label>
                 <select className="input-field" value={form.address}
                   onChange={(e) => update("address", e.target.value)}
                   style={{ colorScheme: "dark", backgroundColor: "rgba(21,22,39,0.95)" }}
                 >
-                  <option value="">اختر المدينة</option>
-                  {JORDANIAN_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  <option value="">{t("اختر المدينة")}</option>
+                  {JORDANIAN_CITIES.map((c) => <option key={c} value={c}>{t(c)}</option>)}
                 </select>
-                {errors.address && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{errors.address}</p>}
+                {errors.address && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{t(errors.address)}</p>}
               </div>
 
               {/* Demo verification notice */}
@@ -284,10 +284,8 @@ export default function ProfilePage() {
                   borderRadius: 12, padding: "12px 14px", fontSize: 12,
                   color: "var(--accent)", marginTop: 4,
                 }}
-              >
-                تُحفظ التغييرات في حسابك، وقد تعيد تغييرات بيانات الهوية حالة KYC إلى الانتظار.
-                <br />
-                <span style={{ color: "var(--text-muted)" }}>تغيير كلمة المرور عملية منفصلة عن تعديل الملف الشخصي.</span>
+              >{t("تُحفظ التغييرات في حسابك، وقد تعيد تغييرات بيانات الهوية حالة KYC إلى الانتظار.")} <br />
+                <span style={{ color: "var(--text-muted)" }}>{t("تغيير كلمة المرور عملية منفصلة عن تعديل الملف الشخصي.")}</span>
               </div>
             </div>
           )}
@@ -296,8 +294,8 @@ export default function ProfilePage() {
 
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px 20px" }}>
         <div className="glass-card" style={{ padding: 18 }}>
-          <p style={{ fontSize: 14, marginBottom: 10 }}>وثيقة الهوية: {currentUser.documentUploaded ? "مرفوعة" : "لم تُرفع بعد"}</p>
-          <button id="btn-profile-document" className="btn-secondary" onClick={() => navigate("/kyc")}>عرض الوثيقة أو استبدالها وإكمال التحقق</button>
+          <p style={{ fontSize: 14, marginBottom: 10 }}>{t("وثيقة الهوية:")} {currentUser.documentUploaded ? t("مرفوعة") : t("لم تُرفع بعد")}</p>
+          <button id="btn-profile-document" className="btn-secondary" onClick={() => navigate("/kyc")}>{t("عرض الوثيقة أو استبدالها وإكمال التحقق")}</button>
         </div>
       </div>
       <BottomNav />

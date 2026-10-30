@@ -1,4 +1,5 @@
-﻿import { useState, useRef, useEffect } from "react";
+import { t } from '../../../i18n/translate.js';
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, DollarSign } from "lucide-react";
 import Header from "../../../components/layout/Header";
@@ -50,20 +51,18 @@ export default function CheckRemittancePage() {
   }
   return (
     <div className="bg-animated" style={{ minHeight: "100vh" }}>
-      <Header title="فحص الحوالة" showBack backTo="/home" />
+      <Header title={t("فحص الحوالة")} showBack backTo="/home" />
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px" }}>
         <div className="animate-fade-in-up" style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>استلام حوالة</h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-            أدخل بيانات الحوالة للتحقق منها
-          </p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>{t("استلام حوالة")}</h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t("أدخل بيانات الحوالة للتحقق منها")} </p>
         </div>
 
         <div className="glass-card animate-fade-in-up" style={{ padding: 24, animationDelay: "0.05s" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {/* Source type */}
             <div>
-              <label className="form-label">نوع المصدر</label>
+              <label className="form-label">{t("نوع المصدر")}</label>
               <div style={{ display: "flex", gap: 10 }}>
                 {[
                   { value: "local", label: "🏦 Local Exchange" },
@@ -88,12 +87,12 @@ export default function CheckRemittancePage() {
                       setErrors((e) => ({ ...e, sourceType: null, providerId: null }));
                     }}
                   >
-                    {opt.label}
+                    {t(opt.label)}
                   </button>
                 ))}
               </div>
               {errors.sourceType && (
-                <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.sourceType}</p>
+                <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{t(errors.sourceType)}</p>
               )}
             </div>
 
@@ -115,7 +114,7 @@ export default function CheckRemittancePage() {
                         gap: 12,
                         fontFamily: "Tajawal, sans-serif",
                         cursor: "pointer",
-                        textAlign: "right",
+                        textAlign: "start",
                       }}
                       onClick={() => {
                         setProviderId(p.id);
@@ -124,17 +123,17 @@ export default function CheckRemittancePage() {
                     >
                       <span style={{ fontSize: 24 }}>{p.logo}</span>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 14 }}>{p.nameEn}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.nameAr || ""}</div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{t(p.nameEn)}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{t(p.nameAr) || ""}</div>
                       </div>
                       {providerId === p.id && (
-                        <span style={{ marginRight: "auto", color: "var(--primary-light)", fontSize: 18 }}>✓</span>
+                        <span style={{ marginInlineStart: "auto", color: "var(--primary-light)", fontSize: 18 }}>✓</span>
                       )}
                     </button>
                   ))}
                 </div>
                 {errors.providerId && (
-                  <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.providerId}</p>
+                  <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{t(errors.providerId)}</p>
                 )}
               </div>
             )}
@@ -144,12 +143,12 @@ export default function CheckRemittancePage() {
               <>
                 <div>
                   <label className="form-label">
-                    {selectedProvider?.referenceLabel || "رقم الحوالة"}
+                    {selectedProvider?.referenceLabel || t("رقم الحوالة")}
                   </label>
                   <input
                     id="input-reference-number"
                     className="input-field"
-                    placeholder={selectedProvider?.referencePlaceholder || "أدخل رقم الحوالة"}
+                    placeholder={selectedProvider?.referencePlaceholder || t("أدخل رقم الحوالة")}
                     value={referenceNumber}
                     onChange={(e) => {
                       setReferenceNumber(e.target.value);
@@ -158,19 +157,17 @@ export default function CheckRemittancePage() {
                     dir="ltr"
                   />
                   {errors.referenceNumber && (
-                    <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.referenceNumber}</p>
+                    <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{t(errors.referenceNumber)}</p>
                   )}
                 </div>
 
                 <div>
                   <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <DollarSign size={14} style={{ color: "var(--primary-light)" }} />
-                    المبلغ التقريبي (JOD)
-                  </label>
+                    <DollarSign size={14} style={{ color: "var(--primary-light)" }} />{t("المبلغ التقريبي (JOD)")} </label>
                   <input
                     id="input-approx-amount"
                     className="input-field"
-                    placeholder="مثال: 200"
+                    placeholder={t("مثال: 200")}
                     value={approxAmount}
                     onChange={(e) => {
                       setApproxAmount(e.target.value.replace(/[^0-9.]/g, ""));
@@ -180,18 +177,16 @@ export default function CheckRemittancePage() {
                     dir="ltr"
                   />
                   {errors.approxAmount && (
-                    <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{errors.approxAmount}</p>
+                    <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 5 }}>{t(errors.approxAmount)}</p>
                   )}
-                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                    أدخل القيمة بالدينار الأردني JOD مهما كانت عملة الحوالة الأصلية
-                  </p>
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{t("أدخل القيمة بالدينار الأردني JOD مهما كانت عملة الحوالة الأصلية")} </p>
                 </div>
               </>
             )}
           </div>
         </div>
 
-        {errors._global && <p role="alert" style={{ color: "var(--danger)", marginTop: 14 }}>{errors._global}</p>}
+        {errors._global && <p role="alert" style={{ color: "var(--danger)", marginTop: 14 }}>{t(errors._global)}</p>}
         <button
           id="btn-check-remittance"
           className="btn-primary animate-fade-in-up"
@@ -204,14 +199,10 @@ export default function CheckRemittancePage() {
               <span
                 className="animate-spin"
                 style={{ width: 18, height: 18, border: "2px solid white", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block" }}
-              />
-              جارٍ التحقق...
-            </span>
+              />{t("جارٍ التحقق...")} </span>
           ) : (
             <>
-              <Search size={16} style={{ display: "inline", marginLeft: 6 }} />
-              التحقق من الحوالة
-            </>
+              <Search size={16} style={{ display: "inline", marginInlineEnd: 6 }} />{t("التحقق من الحوالة")} </>
           )}
         </button>
       </div>

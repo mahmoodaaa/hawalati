@@ -1,3 +1,5 @@
+import { getLocale } from '../i18n/translate.js';
+
 // ── Formatters ────────────────────────────────────────
 
 /**
@@ -14,7 +16,7 @@ export function formatAmount(amount, currency = "JOD") {
 export function formatDate(isoString) {
   if (!isoString) return "—";
   const d = new Date(isoString);
-  return d.toLocaleDateString("ar-JO", {
+  return d.toLocaleDateString(getLocale(), {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -91,6 +93,14 @@ export function validateUsername(username) {
 export function validatePassword(password) {
   if (!password) return "كلمة المرور مطلوبة";
   if (password.length < 6) return "كلمة المرور يجب أن تكون 6 أحرف على الأقل";
+  return null;
+}
+
+export function validateDateOfBirth(value, today = new Date()) {
+  if (!value) return "تاريخ الميلاد مطلوب";
+  const date = new Date(`${value}T00:00:00Z`);
+  const currentDay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value || value >= currentDay) return "تاريخ الميلاد يجب أن يكون في الماضي";
   return null;
 }
 

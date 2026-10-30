@@ -108,11 +108,18 @@ export const BANKS = [
 ];
 
 export const WALLETS = [
-  { id: "zain_cash", name: "زين كاش", nameEn: "Zain Cash", icon: "📱" },
-  { id: "orange_money", name: "أورنج موني", nameEn: "Orange Money", icon: "🟠" },
-  { id: "umniah_joy", name: "أمنية جوي", nameEn: "Umniah Joy", icon: "💜" },
-  { id: "cliq", name: "كليك - CliQ", nameEn: "CliQ", icon: "⚡" },
+  { id: "alawneh_pay", name: "العلاونة باي", nameEn: "Alawneh Pay", icon: "💳" },
+  { id: "dinarak", name: "دينارك", nameEn: "Dinarak", icon: "📲" },
+  { id: "zain_cash", name: "زين كاش", nameEn: "Zain Cash", logo: "/images/wallets/zain-cash.svg" },
+  { id: "orange_money", name: "أورنج موني", nameEn: "Orange Money", logo: "/images/wallets/orange.svg" },
+  // Keep the existing backend ID; only the displayed brand name changes.
+  { id: "umniah_joy", name: "محفظة أمنية", nameEn: "Umniah Wallet", logo: "/images/wallets/umniah.png" },
 ];
+
+// Use current display names for receipts and older transaction records too.
+export function getWalletName(id, fallback = "محفظة") {
+  return WALLETS.find((wallet) => wallet.id === id)?.name || fallback;
+}
 
 export const JORDANIAN_CITIES = [
   "عمّان",

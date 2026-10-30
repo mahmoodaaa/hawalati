@@ -44,3 +44,6 @@ Thumbs.db
 *.iml
 *.iws
 *.ipr
+
+# Local delivery packages and image archives
+release/

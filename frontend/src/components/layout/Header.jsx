@@ -1,4 +1,5 @@
-﻿import { useNavigate, NavLink } from "react-router-dom";
+import { t } from '../../i18n/translate.js';
+import { useNavigate, NavLink } from "react-router-dom";
 import { LogOut, ArrowRight, Wallet, History, UserRound, Home } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -42,7 +43,7 @@ export default function Header({ title, showBack = false, backTo = -1, backState
         <div style={{ width: 40 }}>
           {showBack && (
             <button
-              aria-label="رجوع" onClick={() => typeof backTo === "number" ? navigate(backTo) : navigate(backTo, { state: backState })}
+              aria-label={t("رجوع")} onClick={() => typeof backTo === "number" ? navigate(backTo) : navigate(backTo, { state: backState })}
               style={{
                 background: "rgba(255,255,255,0.06)",
                 border: "1px solid rgba(255,255,255,0.1)",
@@ -65,7 +66,7 @@ export default function Header({ title, showBack = false, backTo = -1, backState
                 e.currentTarget.style.color = "var(--text-secondary)";
               }}
             >
-              <ArrowRight size={18} />
+              <ArrowRight className="back-arrow" size={18} />
             </button>
           )}
         </div>
@@ -94,7 +95,7 @@ export default function Header({ title, showBack = false, backTo = -1, backState
               WebkitTextFillColor: "transparent",
             }}
           >
-            {title || "حوالتي"}
+            {t(title) || t("حوالتي")}
           </span>
         </div>
 
@@ -103,7 +104,7 @@ export default function Header({ title, showBack = false, backTo = -1, backState
           {isAuthenticated && (
             <button
               onClick={handleLogout}
-              title="تسجيل الخروج"
+              title={t("تسجيل الخروج")}
               style={{
                 background: "rgba(255,107,107,0.1)",
                 border: "1px solid rgba(255,107,107,0.2)",
@@ -129,12 +130,12 @@ export default function Header({ title, showBack = false, backTo = -1, backState
           )}
         </div>
       </div>
-      {isAuthenticated && <nav aria-label="التنقل الرئيسي" style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px 12px", display: "flex", gap: 8 }}>
-        {[{ path: "/home", label: "الرئيسية", Icon: Home }, { path: "/history", label: "سجل العمليات", Icon: History }, { path: "/profile", label: "الملف الشخصي", Icon: UserRound }].map(({ path, label, Icon }) => (
+      {isAuthenticated && <nav aria-label={t("التنقل الرئيسي")} style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px 12px", display: "flex", gap: 8 }}>
+        {[{ path: "/home", label: t("الرئيسية"), Icon: Home }, { path: "/history", label: t("سجل العمليات"), Icon: History }, { path: "/profile", label: t("الملف الشخصي"), Icon: UserRound }].map(({ path, label, Icon }) => (
           <NavLink key={path} to={path} style={({ isActive }) => ({ flex: 1, display: "flex", gap: 5, alignItems: "center", justifyContent: "center",
             padding: "9px 4px", borderRadius: 10, fontSize: 12, textDecoration: "none", color: isActive ? "var(--primary-light)" : "var(--text-secondary)",
             background: isActive ? "rgba(108,99,255,0.15)" : "rgba(255,255,255,0.03)" })}>
-            <Icon size={14} /><span>{label}</span>
+            <Icon size={14} /><span>{t(label)}</span>
           </NavLink>
         ))}
       </nav>}

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -34,7 +34,7 @@ body {
   background: var(--bg-dark);
   color: var(--text-primary);
   min-height: 100vh;
-  direction: rtl;
+  direction: inherit;
   overflow-x: hidden;
 }
 
@@ -345,3 +345,27 @@ select.input-field option:checked {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
+
+
+html[lang="en"] body { font-family: 'Inter', 'Tajawal', sans-serif; }
+.language-switch {
+  position: fixed;
+  inset-inline-end: 16px;
+  bottom: 80px;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border: 1px solid rgba(108,99,255,0.5);
+  border-radius: 999px;
+  background: rgba(21,22,39,0.96);
+  color: var(--text-primary);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+.language-switch:hover { border-color: var(--accent); }
+.language-switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+html[dir="ltr"] .back-arrow { transform: scaleX(-1); }

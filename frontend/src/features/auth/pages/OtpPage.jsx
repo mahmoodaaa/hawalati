@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { t } from '../../../i18n/translate.js';
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { RefreshCw } from "lucide-react";
 import Header from "../../../components/layout/Header";
@@ -116,10 +117,8 @@ export default function OtpPage() {
           >
             📱
           </div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>التحقق برمز OTP</h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.6 }}>
-            أدخل الرمز المرسل إلى رقمك
-          </p>
+          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>{t("التحقق برمز OTP")}</h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.6 }}>{t("أدخل الرمز المرسل إلى رقمك")} </p>
           {phone && (
             <p
               style={{
@@ -149,8 +148,7 @@ export default function OtpPage() {
               textAlign: "center",
               marginBottom: 24,
             }}
-          >
-            🎯 الرمز التجريبي: <strong style={{ fontSize: 18, letterSpacing: 3 }}>123456</strong>
+          >{t("🎯 الرمز التجريبي:")} <strong style={{ fontSize: 18, letterSpacing: 3 }}>123456</strong>
           </div>
 
           <OtpInput value={otp} onChange={setOtp} />
@@ -167,7 +165,7 @@ export default function OtpPage() {
                 borderRadius: 8,
               }}
             >
-              {error}
+              {t(error)}
             </p>
           )}
 
@@ -178,14 +176,13 @@ export default function OtpPage() {
             disabled={loading || otp.length < 6}
             style={{ marginTop: 24 }}
           >
-            {loading ? "جارٍ التحقق..." : "تأكيد الرمز →"}
+            {loading ? t("جارٍ التحقق...") : t("تأكيد الرمز →")}
           </button>
 
           {/* Resend */}
           <div style={{ textAlign: "center", marginTop: 16 }}>
             {countdown > 0 ? (
-              <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                إعادة الإرسال بعد{" "}
+              <p style={{ fontSize: 13, color: "var(--text-muted)" }}>{t("إعادة الإرسال بعد")}{" "}
                 <span style={{ color: "var(--primary-light)", fontWeight: 700 }}>{countdown}s</span>
               </p>
             ) : (
@@ -205,9 +202,7 @@ export default function OtpPage() {
                   margin: "0 auto",
                 }}
               >
-                <RefreshCw size={13} />
-                إعادة إرسال الرمز
-              </button>
+                <RefreshCw size={13} />{t("إعادة إرسال الرمز")} </button>
             )}
           </div>
         </div>

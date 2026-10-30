@@ -1,67 +1,46 @@
-﻿# Hawalati MVP
+# Hawalati MVP
 
-A demo remittance application with a React/Vite frontend and a Spring Boot/PostgreSQL backend. It demonstrates authentication with OTP and JWT, profile and document management, demo KYC, and seeded remittance workflows. It does not perform real payouts, send real SMS, or provide production identity verification.
+Source repository: https://github.com/hwaliti/hwaliti-mvp
 
-## Repository layout
+React/Vite + Spring Boot (Java 21) + PostgreSQL demo. Authentication, registration OTP, JWT refresh, profile updates, document storage/demo KYC, remittance lookup/receive and transaction history use the backend. The UI supports Arabic/English. No real payouts, SMS or biometric verification are performed.
 
-- `frontend/`: React application, UI, API services, and frontend tests.
-- `hawalati-backend/`: Spring Boot application, API, persistence, and backend tests.
-- `frontend/SPRINT5_PLAN.md`: frontend/backend integration plan and progress.
-- `hawalati-backend/SPRINT3.md` and `SPRINT4.md`: backend sprint notes.
+## Business-owner delivery
 
-## Requirements
+Use the prebuilt **Hawalati-Demo.zip**. Install Docker Desktop once, extract the entire ZIP, then double-click **START_HAWALATI.bat**. The website opens at **http://localhost:5173**. Java, Node, Maven, PostgreSQL, Git and IDEs are not needed on the owner's host.
 
-- Java 21 or later supported by the backend and its dependencies.
-- PostgreSQL with a local database named `hawalati_db` (or set `DB_URL`).
-- Node.js compatible with Vite 8 (20.19+ or 22.12+) and npm.
+- [START_HERE_AR.md](START_HERE_AR.md), or START_HERE_AR.html: simple owner instructions.
+- [DEMO_GUIDE.md](DEMO_GUIDE.md): registration, fictional account/reference data and the demo journey.
+- STOP_HAWALATI.bat: stop without deleting data.
+- CHECK_SYSTEM.bat: Docker/service diagnostics.
+- RESET_DEMO.bat: explicit confirmation before deleting only this demo project's data.
+- [delivery/README.md](delivery/README.md): maintainer packaging and verification.
 
-## Run the backend
+Docker Desktop must be running Linux containers on a supported Windows x64/WSL 2 setup. Consult [Docker's current Windows requirements](https://docs.docker.com/desktop/setup/install/windows-install/). Do not run the ZIP directly: extract to a writable folder first.
 
-Set local environment variables in your terminal or IDE. Never commit actual credentials. Spring Boot does not automatically load `.env` files; the example file documents the variables to configure.
+## Build the ZIP as maintainer
 
-```powershell
-cd hawalati-backend
-$env:DB_URL = 'jdbc:postgresql://localhost:5432/hawalati_db'
-$env:DB_USERNAME = 'postgres'
-$env:DB_PASSWORD = '<your-local-database-password>'
-$env:JWT_SECRET = '<your-random-secret-at-least-32-bytes>'
-.\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=demo'
-```
+With Docker Desktop running, double-click **CREATE_DEMO_PACKAGE.bat** from this repository. It builds cached Docker images, includes the PostgreSQL image, exports images only (never volumes/containers), and creates **release/Hawalati-Demo.zip**. No runtime .env, user database, uploaded documents or local backend password is copied. The root release/ directory is ignored by Git.
 
-Backend: `http://localhost:7171`. Swagger: `http://localhost:7171/swagger-ui/index.html`.
-The `demo` profile seeds fictional remittances. Uploaded identity files stay local under `uploads/` and are excluded from Git.
+The default owner ZIP contains prebuilt Linux/amd64 images and needs no application compilation or dependency downloads at first launch. An optional source fallback is available through `powershell.exe -NoProfile -ExecutionPolicy Bypass -File delivery/Create-Package.ps1 -Mode Source`; it builds on first Start and requires internet for image/dependency downloads.
 
-## Run the frontend
+## Local deployment behavior
 
-In a separate terminal:
+- Compose runs PostgreSQL, Spring Boot with profile `demo`, and Nginx serving the built React UI.
+- Only `127.0.0.1:5173` is published. PostgreSQL and the backend have no host ports.
+- Nginx forwards `/api/` to the backend, supports React route reloads and multipart uploads. The frontend image builds with `VITE_API_BASE_URL=/`; the developer's frontend .env is excluded.
+- PostgreSQL readiness precedes backend startup; backend health precedes frontend startup. Start also checks the API through Nginx.
+- Docker volumes preserve PostgreSQL and uploaded files. `.env` is generated locally once with random DB/JWT secrets and reused. A missing .env with existing project data produces an error instead of silently rotating secrets.
+- Container builds exclude the developer's backend `application.properties`. Only `hawalati-backend/docker/application.properties` with environment placeholders is baked into the backend image. Existing local developer credentials are not modified.
+- DemoRemittanceInitializer and beneficiary checks are unchanged. Fresh fictional remittances match national ID `9912345678`; existing references are skipped. Seeds expire on **2026-12-31**.
+- No cleanup/prune or automatic data reset runs during Start/Stop. Reset validates volume ownership and requires `RESET HAWALATI`.
 
-```powershell
-cd frontend
-npm.cmd ci
-npm.cmd run dev
-```
+## Repository and development
 
-Frontend: `http://localhost:5173`. The API URL defaults to `http://localhost:7171`; see `frontend/.env.example`. Backend CORS allows that frontend origin.
+- `frontend/`: React source, tests, Dockerfile and Nginx configuration.
+- `hawalati-backend/`: Spring Boot source, tests and Dockerfile.
+- `docker-compose.yml`: runtime services; `docker-compose.build.yml`: source-build override.
+- `delivery/`: Windows launcher, packager and fictional test PNG.
 
-## Checks
+For native development, use Java 21, local PostgreSQL, and a Node version supported by the installed Vite release. Configure DB_URL, DB_USERNAME, DB_PASSWORD and JWT_SECRET in your IDE/terminal. Spring Boot does not automatically load .env files. Run the backend with profile `demo`, then `npm.cmd ci` and `npm.cmd run dev` in frontend. See [frontend/README.md](frontend/README.md). Never commit credentials or identity documents.
 
-```powershell
-cd frontend
-npm.cmd test
-npm.cmd run build
-npm.cmd run lint
-```
-
-```powershell
-cd hawalati-backend
-.\mvnw.cmd test
-```
-
-The backend application-context test requires local PostgreSQL, DB_PASSWORD and JWT_SECRET. In the upload environment it failed to load the database context even though its method is marked disabled; the 10 isolated unit tests passed. To run those without a database, use `./mvnw.cmd "-Dtest=UserMapperTest,JwtProviderTest,DocumentStorageServiceImplTest" test`. The separate frontend live-auth smoke script creates a fictional database account when explicitly run; see `frontend/README.md`.
-
-## Integration status
-
-Sprint 5 API client, JWT session, authentication and OTP are connected to the backend. Authenticated document upload and remaining remittance/history integration are still in progress. Some frontend screens continue to use local demo services. See the Sprint 5 plan for the exact checkpoint.
-
-The public repository contains source code and fictional demo fixtures. Runtime secrets, uploaded documents, dependencies, builds, IDE settings, database files and local archives are excluded.
-
+Frontend checks: `npm.cmd test`, `npm.cmd run build`, `npm.cmd run lint`. Selected isolated backend suites: `mvnw.cmd "-Dtest=UserMapperTest,JwtProviderTest,DocumentStorageServiceImplTest,AuthServiceImplTest,RemittanceWalletSupportTest" test`. The application-context suite needs its test database setup; do not treat skipped/unexecuted suites as passed. Container release builds skip tests; validation is recorded separately in delivery/README.md.

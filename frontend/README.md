@@ -1,6 +1,8 @@
 ﻿# Hawalati MVP frontend
 
-React/Vite UI connected incrementally to Spring Boot on `http://localhost:7171`.
+React/Vite UI connected to Spring Boot. Native development uses `http://localhost:7171`; the Docker delivery uses same-origin `/api/` through Nginx at `http://localhost:5173`.
+
+For the business-owner one-click Windows package, see [START_HERE_AR.md](../START_HERE_AR.md), [DEMO_GUIDE.md](../DEMO_GUIDE.md), and [delivery/README.md](../delivery/README.md). The owner only installs Docker Desktop and opens START_HAWALATI.bat. The prebuilt package does not need Node, Java, PostgreSQL, Git or an IDE on the host.
 
 ## Local setup
 
@@ -44,7 +46,7 @@ npm.cmd run build
 npm.cmd run lint
 ```
 
-37 automated tests cover the API client, document/profile services, registration and remittance contracts. Checks include numeric JOD lookup, all lookup statuses, UUID/agreement on Bank/Wallet receive, server fee/net/masked destination, 409/validation/network errors, server-only history, JWT refresh, profile allowlisting, multipart documents, phone-only OTP and unchanged LOGIN payloads. HTTP responses are mocked; this does not establish browser or real-backend acceptance of the new flow.
+45 automated tests cover the API client, document/profile services, registration and remittance contracts. Checks include numeric JOD lookup, all lookup statuses, UUID/agreement on Bank/Wallet receive, server fee/net/masked destination, 409/validation/network errors, server-only history, JWT refresh, profile allowlisting, multipart documents, phone-only OTP and unchanged LOGIN payloads. HTTP responses are mocked; this does not establish browser or real-backend acceptance of the new flow.
 
 Manual browser checks (pending for this new flow):
 
@@ -61,7 +63,7 @@ Manual browser checks (pending for this new flow):
 
 ## Files for the phone-first registration change
 
-Updated: `src/services/authService.js`, `src/context/AuthContext.jsx`, `src/features/auth/pages/RegisterPage.jsx`, `src/features/auth/pages/OtpPage.jsx`, `src/App.jsx`, `README.md`, `SPRINT5_PLAN.md`.
+Updated: `src/services/authService.js`, `src/context/AuthContext.jsx`, `src/features/auth/pages/RegisterPage.jsx`, `src/features/auth/pages/OtpPage.jsx`, `src/App.jsx`, `README.md`, the integration documentation.
 
 Added: `src/features/auth/pages/CreateCredentialsPage.jsx`, `src/features/auth/components/RegistrationSteps.jsx`, `src/features/auth/components/RegistrationRestart.jsx`, `tests/registration.test.js`.
 
@@ -82,7 +84,7 @@ Lookup, receive, success, History, Home recent transactions, and Profile now use
 - Profile fetches backend state on opening and updates AuthContext through refreshUser. Saving uses permitted fields only, and actual KYC status is displayed. Removed the nonfunctional password field from profile-save; password changes remain a separate endpoint. Profile links to the existing document/KYC page.
 - Existing authenticated document GET/PUT is retained. Replacement immediately refreshes the profile, then KYC uses the existing endpoint and refreshes again. Selection/upload alone does not display DEMO_VERIFIED. New registration never uploads its initially selected document twice.
 
-Verification: npm.cmd test passes 37 tests; npm.cmd run build passes; lint completes with four existing warnings outside the remittance/profile changes. The new tests use mocked HTTP and do not mark browser acceptance passed.
+Verification: npm.cmd test passes 45 tests; npm.cmd run build passes; lint completes with four existing warnings outside the remittance/profile changes. The new tests use mocked HTTP and do not mark browser acceptance passed.
 
 Demo source inspection: all seeded remittances belong to fictional national ID 9912345678 and expire on 2026-12-31. Seed initialization skips existing references; a previously received reference remains received. Fresh registrations with another national ID correctly get NOT_FOUND for those remittances. Exact references, provider IDs and JOD amounts are documented in frontend/DEMO_GUIDE.md. No beneficiary matching checks were bypassed.
 
@@ -107,7 +109,21 @@ Files changed for this remaining-integration checkpoint:
 - Shared/UI: `src/components/layout/Header.jsx`, `src/features/auth/pages/ProfilePage.jsx`, `src/features/kyc/pages/KycPage.jsx`.
 - Added: `src/features/remittance/hooks/useRemittanceHistory.js`, `src/features/remittance/components/TransactionCard.jsx`, `tests/remittanceService.test.js`.
 - Extended tests: `tests/userService.test.js`.
-- Documentation: `README.md`, `SPRINT5_PLAN.md`, `DEMO_GUIDE.md`.
+- Documentation: `README.md`, the integration documentation, `DEMO_GUIDE.md`.
 
 The registration pages, AuthContext, JWT client, App routes, and static provider IDs were not rewritten for this checkpoint. Existing backend working-tree changes belong to the separate backend work and were preserved.
 
+
+
+## Arabic / English UI and wallet update — 2026-10-30
+
+- A fixed language button is available across every public and authenticated route. It switches the UI to Arabic/RTL or English/LTR and stores only `hawalati_language` as a preference. The existing React tree is rerendered without a route change or remount, preserving active form and registration state.
+- Labels, actions, placeholders, accessible labels, common server/validation errors, bank/wallet labels and displayed timestamps are localized. Account names, phone numbers, national IDs, references, selected Files and API payload identifiers are preserved.
+- Removed the specifically requested financial heading, login hint, registration-review note, credentials note, Profile Demo badge, face-preview row, KYC explanatory banner and Welcome demo banner. Actual backend KYC/transaction status handling remains intact.
+- Date of birth is editable in Profile, validated as a real past date, and included in the existing allowed profile PUT fields. National ID and password remain protected.
+- Added `alawneh_pay` (Alawneh Pay) and `dinarak` (Dinarak) to both frontend choices and the backend wallet map, with explicit user authorization. Existing phone, KYC, beneficiary and receipt validation remain enforced.
+- Restart the Spring Boot process from IntelliJ before testing the new wallets. The running JVM must load the new wallet map.
+
+Validation: 45 frontend tests and the Vite build pass. The selected backend unit suites pass 26 tests, including 5 new wallet-support tests; the database application-context suite was not run. An isolated headless browser check with mocked APIs passed registration language switching without losing typed data, language persistence after reload, editable DOB/state preservation and PUT payload, removed KYC copy, new wallet choices, and no runtime exceptions. These browser checks did not create accounts or transactions in PostgreSQL.
+
+Manual checks to finish: use the language button on each route; enter a registration draft/file and switch languages; save an actual date-of-birth edit; after restarting the backend, receive two matching available remittances to the new wallet choices and inspect History. Backend real-provider integrations remain outside the MVP.

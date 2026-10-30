@@ -1,8 +1,10 @@
-﻿import { useState } from "react";
+import { t } from '../../../i18n/translate.js';
+import { useState } from "react";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { CheckCircle, Home, History, Copy } from "lucide-react";
 import Header from "../../../components/layout/Header";
 import { formatAmount, formatDate } from "../../../utils/formatters";
+import { getWalletName } from "../../../data/providers";
 
 export default function SuccessPage() {
   const navigate = useNavigate();
@@ -24,7 +26,7 @@ export default function SuccessPage() {
   }
   return (
     <div className="bg-animated" style={{ minHeight: "100vh" }}>
-      <Header title="تم بنجاح" />
+      <Header title={t("تم بنجاح")} />
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px" }}>
 
         {/* Success animation */}
@@ -55,12 +57,8 @@ export default function SuccessPage() {
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
             }}
-          >
-            تمت العملية بنجاح! 🎉
-          </h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.6 }}>
-            تم تأكيد طلب استلام حوالتك التجريبية
-          </p>
+          >{t("تمت العملية بنجاح! 🎉")} </h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.6 }}>{t("تم تأكيد طلب استلام حوالتك التجريبية")} </p>
         </div>
 
         {/* Transaction ID */}
@@ -74,7 +72,7 @@ export default function SuccessPage() {
             border: "1px solid rgba(0,212,170,0.2)",
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>رقم العملية التجريبي</p>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>{t("رقم العملية التجريبي")}</p>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
             <span
               style={{
@@ -92,7 +90,7 @@ export default function SuccessPage() {
             </span>
             <button
               onClick={copyTxnId}
-              title="نسخ"
+              title={t("نسخ")}
               style={{
                 background: "none",
                 border: "none",
@@ -116,22 +114,20 @@ export default function SuccessPage() {
           className="glass-card animate-fade-in-up"
           style={{ padding: 20, marginBottom: 20, animationDelay: "0.12s" }}
         >
-          <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", marginBottom: 14 }}>
-            ملخص العملية
-          </p>
+          <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", marginBottom: 14 }}>{t("ملخص العملية")} </p>
 
           {[
-            ["رقم الحوالة", transaction.referenceNumber],
-            ["المُرسِل", transaction.senderName],
-            ["المبلغ الأصلي", formatAmount(transaction.amount, transaction.currency)],
-            ["المبلغ بالدينار", formatAmount(transaction.amountJOD)],
-            ["الحالة", transaction.status],
-            ["المبلغ الصافي", formatAmount(transaction.netAmount)],
+            [t("رقم الحوالة"), transaction.referenceNumber],
+            [t("المُرسِل"), transaction.senderName],
+            [t("المبلغ الأصلي"), formatAmount(transaction.amount, transaction.currency)],
+            [t("المبلغ بالدينار"), formatAmount(transaction.amountJOD)],
+            [t("الحالة"), t(transaction.status)],
+            [t("المبلغ الصافي"), formatAmount(transaction.netAmount)],
             [
-              "وجهة الاستلام",
+              t("وجهة الاستلام"),
               transaction.destination?.type === "bank"
-                ? `${transaction.destination.bankName || "بنك"}`
-                : `${transaction.destination?.walletName || "محفظة"}`,
+                ? `${t(transaction.destination.bankName || "بنك")}`
+                : t(getWalletName(transaction.destination?.walletId, transaction.destination?.walletName || "محفظة")),
             ],
           ].map(([k, v]) => (
             <div
@@ -144,13 +140,13 @@ export default function SuccessPage() {
                 fontSize: 13,
               }}
             >
-              <span style={{ color: "var(--text-secondary)" }}>{k}</span>
+              <span style={{ color: "var(--text-secondary)" }}>{t(k)}</span>
               <span style={{ fontWeight: 700 }}>{v}</span>
             </div>
           ))}
 
           <p style={{ fontSize: 13, marginTop: 10 }} dir="ltr">{transaction.destination?.iban || transaction.destination?.walletPhone}</p>
-          {copyError && <p role="alert" style={{ color: "var(--danger)", marginTop: 10 }}>{copyError}</p>}
+          {copyError && <p role="alert" style={{ color: "var(--danger)", marginTop: 10 }}>{t(copyError)}</p>}
           {/* Net amount highlight */}
           <div
             style={{
@@ -162,12 +158,11 @@ export default function SuccessPage() {
               textAlign: "center",
             }}
           >
-            <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>المبلغ المُستلَم</p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{t("المبلغ المُستلَم")}</p>
             <p style={{ fontSize: 28, fontWeight: 900, color: "var(--accent)" }}>
               {formatAmount(transaction.netAmount)}
             </p>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-              بعد خصم رسوم الخدمة ({formatAmount(transaction.fee)})
+            <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{t("بعد خصم رسوم الخدمة (")}{formatAmount(transaction.fee)})
             </p>
           </div>
         </div>
@@ -186,9 +181,7 @@ export default function SuccessPage() {
             animationDelay: "0.15s",
             textAlign: "center",
           }}
-        >
-          ⚠️ هذه معاملة تجريبية للعرض فقط — لم يُحوَّل أي مبلغ مالي حقيقي
-        </div>
+        >{t("⚠️ هذه معاملة تجريبية للعرض فقط — لم يُحوَّل أي مبلغ مالي حقيقي")} </div>
 
         {/* Action buttons */}
         <div
@@ -199,18 +192,14 @@ export default function SuccessPage() {
             id="btn-receive-another"
             className="btn-accent"
             onClick={() => navigate("/check-remittance")}
-          >
-            استلام حوالة أخرى
-          </button>
+          >{t("استلام حوالة أخرى")} </button>
           <button
             id="btn-go-home"
             className="btn-secondary"
             onClick={() => navigate("/home")}
             style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
           >
-            <Home size={15} />
-            الصفحة الرئيسية
-          </button>
+            <Home size={15} />{t("الصفحة الرئيسية")} </button>
           <button
             id="btn-view-history"
             onClick={() => navigate("/history")}
@@ -229,9 +218,7 @@ export default function SuccessPage() {
               fontFamily: "Tajawal, sans-serif",
             }}
           >
-            <History size={14} />
-            عرض سجل العمليات
-          </button>
+            <History size={14} />{t("عرض سجل العمليات")} </button>
         </div>
       </div>
     </div>

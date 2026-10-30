@@ -1,0 +1,15 @@
+**
+!package.json
+!package-lock.json
+!index.html
+!vite.config.js
+!public/
+!public/**
+!src/
+!src/**
+!docker/
+!docker/nginx.conf
+!Dockerfile
+**/.env*
+**/*.key
+**/*.pem

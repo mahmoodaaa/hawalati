@@ -1,3 +1,4 @@
+import { t } from '../../../i18n/translate.js';
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, LogIn } from "lucide-react";
@@ -64,10 +65,8 @@ export default function LoginPage() {
           >
             👋
           </div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>أهلاً بعودتك!</h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-            أدخل بياناتك لتسجيل الدخول وإدارة حوالاتك
-          </p>
+          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{t("أهلاً بعودتك!")}</h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t("أدخل بياناتك لتسجيل الدخول وإدارة حوالاتك")} </p>
         </div>
 
         {/* Form */}
@@ -79,12 +78,11 @@ export default function LoginPage() {
           {/* Username */}
           <div style={{ marginBottom: 16 }}>
             <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span>🪪</span> اسم المستخدم
-            </label>
+              <span>🪪</span>{t("اسم المستخدم")} </label>
             <input
               id="input-username"
               className="input-field"
-              placeholder="مثال: ahmad.demo"
+              placeholder={t("مثال: ahmad.demo")}
               value={username}
               onChange={(e) => { setUsername(e.target.value); setError(""); }}
               autoComplete="username"
@@ -95,8 +93,7 @@ export default function LoginPage() {
           {/* Password */}
           <div style={{ marginBottom: 20 }}>
             <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span>🔒</span> كلمة المرور
-            </label>
+              <span>🔒</span>{t("كلمة المرور")} </label>
             <div style={{ position: "relative" }}>
               <input
                 id="input-password"
@@ -134,23 +131,12 @@ export default function LoginPage() {
                 marginBottom: 16, textAlign: "center",
               }}
             >
-              {error}
+              {t(error)}
             </div>
           )}
 
           {/* Demo hint */}
-          <div
-            style={{
-              background: "rgba(255,217,61,0.07)",
-              border: "1px solid rgba(255,217,61,0.2)",
-              borderRadius: 10, padding: "8px 14px",
-              marginBottom: 16,
-              fontSize: 12, color: "var(--warning)",
-              display: "flex", flexDirection: "column", gap: 2,
-            }}
-          >
-            <span style={{ fontWeight: 700 }}>💡 استخدم حسابًا مسجلًا على الباك، أو أنشئ حسابًا جديدًا.</span>
-          </div>
+          
 
           <button
             id="btn-login"
@@ -160,26 +146,19 @@ export default function LoginPage() {
           >
             {loading ? (
               <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                <span className="animate-spin" style={{ width: 18, height: 18, border: "2px solid white", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block" }} />
-                جارٍ التحقق...
-              </span>
+                <span className="animate-spin" style={{ width: 18, height: 18, border: "2px solid white", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block" }} />{t("جارٍ التحقق...")} </span>
             ) : (
               <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                <LogIn size={16} />
-                تسجيل الدخول ←
-              </span>
+                <LogIn size={16} />{t("تسجيل الدخول ←")} </span>
             )}
           </button>
         </form>
 
-        <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "var(--text-secondary)" }}>
-          ليس لديك حساب؟{" "}
+        <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "var(--text-secondary)" }}>{t("ليس لديك حساب؟")}{" "}
           <span
             onClick={() => navigate("/register")}
             style={{ color: "var(--primary-light)", cursor: "pointer", fontWeight: 600 }}
-          >
-            إنشاء حساب جديد
-          </span>
+          >{t("إنشاء حساب جديد")} </span>
         </p>
       </div>
     </div>
